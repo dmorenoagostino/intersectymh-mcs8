@@ -1,0 +1,92 @@
+DATA: 
+    
+    FILE = "../datasets/20260611_align_strata1.csv";
+
+VARIABLE:
+
+    NAMES = 
+        ID pttype2 sptn00 hovwt2 
+        birthsex ethnicity sexuality poverty strata
+        k6_1-k6_6
+        sw_1-sw_7
+        sh_1-sh_6;
+        
+    IDVARIABLE = ID;
+
+    USEVARIABLES = 
+        sw_1-sw_7 birthsex;
+
+    GROUPING = birthsex (1 = female 2 = male);
+
+    MISSING = ALL (-9999);
+
+    STRATIFICATION = pttype2;
+    WEIGHT = hovwt2;
+    CLUSTER = sptn00;
+
+    ANALYSIS:
+        
+        TYPE = COMPLEX;
+
+    MODEL:
+
+        sw BY sw_3 sw_1 sw_2 sw_4-sw_7; ! using item 3 as anchor based on YPAG input
+        
+        [sw_1];
+        [sw_2];
+        [sw_3];
+        [sw_4];
+        [sw_5];
+        [sw_6];
+        [sw_7];
+
+        MODEL female:
+        
+            sw BY 
+                sw_1 (l1)
+                sw_2 (l2)
+                sw_3 (l3)
+                sw_4 (l4)
+                sw_5 (l5)
+                sw_6 (l6)
+                sw_7 (l7);
+
+            [sw_1] (i1);
+            [sw_2] (i2);
+            [sw_3] (i3);
+            [sw_4] (i4);
+            [sw_5] (i5);
+            [sw_6];
+            [sw_7] (i7);
+
+            sw@1;
+            [sw@0];
+
+        MODEL male:
+
+            sw BY 
+                sw_1 (l1)
+                sw_2 (l2)
+                sw_3 (l3)
+                sw_4 (l4)
+                sw_5 (l5)
+                sw_6 (l6)
+                sw_7 (l7);
+
+            [sw_1] (i1);
+            [sw_2] (i2);
+            [sw_3] (i3);
+            [sw_4] (i4);
+            [sw_5] (i5);
+            [sw_6];
+            [sw_7] (i7);
+
+    OUTPUT:
+
+        TECH1 STDYX;
+        MODINDICES(10);
+
+    SAVEDATA:
+
+        FILE = 20260611_swemwbs_sex_part_fscores.csv;
+        SAVE = FSCORES;

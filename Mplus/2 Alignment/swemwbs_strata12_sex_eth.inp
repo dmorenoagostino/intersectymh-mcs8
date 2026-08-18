@@ -1,0 +1,46 @@
+DATA: 
+    
+    FILE = "../datasets/20260611_align_strata12_sex_eth.csv";
+
+VARIABLE:
+
+    NAMES = 
+        ID pttype2 sptn00 hovwt2 
+        birthsex ethnicity sexuality poverty strata
+        k6_1 k6_2 k6_3 k6_4 k6_5 k6_6
+        sw_1 sw_2 sw_3 sw_4 sw_5 sw_6 sw_7
+        sh_1 sh_2 sh_3 sh_4 sh_5 sh_6;
+       
+    IDVARIABLE = ID;
+
+    USEVARIABLES = 
+        sw_1-sw_7
+        strata;
+
+    MISSING = ALL (-9999);
+
+    CLASSES = c(12);
+    
+    KNOWNCLASS = c(strata = 
+        11 12 13 14 15 16 
+        21 22 23 24 25 26);
+
+    STRATIFICATION = pttype2;
+    WEIGHT = hovwt2;
+    CLUSTER = sptn00;
+
+    ANALYSIS:
+        
+        TYPE = COMPLEX MIXTURE;
+        ALIGNMENT = FIXED(11);
+        PROCESSORS = 8;
+        ALGORITHM = INTEGRATION;
+
+    MODEL:
+
+        %OVERALL%
+        swemwbs BY sw_1-sw_7;
+
+    OUTPUT:
+
+        ALIGN;
