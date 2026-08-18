@@ -1,0 +1,1595 @@
+kaboom
+
+**# PREPARATION OF DATASET FOR VISUALISATION
+clear all 
+
+use Datasets/20260629_mcs_combined_clean, clear
+
+recode sexuality_23y ///
+	(1 = 1 "1 Heterosexual") ///
+	(2 = 2 "2 Gay or lesbian") ///
+	(3 = 3 "3 Bisexual") ///
+	(4 = 4 "4 Other") ///
+	(6 = 5 "5 Pansexual") ///
+	(7 = 6 "6 Asexual") ///
+	(8 = 7 "7 Queer") ///
+	(-8 -1 5 . = 999 "999 DK/RF/NA") ///
+	, gen(sexuality_23y_cat)
+
+* Recode missing on grouping variables to 999 for descriptives and add missing labels
+foreach g in birthsex ethnicity ethnicity_6cat poverty_9m_3y {
+	recode `g' (. = 999)
+}
+
+foreach label in birthsex ethnicity ethnicity_6cat {
+	label define `label' ///
+	999 "Missing", modify
+}
+
+label define poverty ///
+	0 "0 No childhood poverty" ///
+	1 "1 Childhood poverty" ///
+	999 "Missing", replace
+	
+label values poverty_9m_3y poverty
+
+label define sexualmin ///
+	0 "0 Heterosexual" ///
+	1 "1 Sexual minority" ///
+	999 "Missing", replace
+	
+label values sexual_minority_23y_augm sexualmin
+
+
+* Create temporary file
+
+tempfile weighted_estimates
+
+postfile results ///
+	str30 domain ///
+	double category ///
+	str80 category_label ///
+	str40 outcome ///
+	str20 statistic ///
+	double estimate ///
+	double lb ///
+	double ub ///
+	double n_obs ///
+	using `weighted_estimates', replace
+
+
+* Loop over social identity/position variables and outcomes
+
+foreach group in birthsex ethnicity ethnicity_6cat sexuality_23y_cat sexual_minority_23y_augm poverty_9m_3y {
+
+	levelsof `group', local(levels)
+
+	foreach y in kessler_sr_23y caseness_23y swemwbs_sr_23y selfharm_23y selfharm_23y_cont suicide_23y {
+
+		* Outcome labels and statistic labels
+		local outlab "`y'"
+		local stat "M"
+		local binary = 0
+
+		if "`y'" == "kessler_sr_23y" {
+			local outlab "Kessler-6"
+			local stat "M"
+		}
+
+		if "`y'" == "caseness_23y" {
+			local outlab "Caseness"
+			local stat "% yes"
+			local binary = 1
+		}
+
+		if "`y'" == "swemwbs_sr_23y" {
+			local outlab "SWEMWBS"
+			local stat "M"
+		}
+
+		if "`y'" == "selfharm_23y" {
+			local outlab "Self-harm (any)"
+			local stat "% yes"
+			local binary = 1
+		}
+
+		if "`y'" == "selfharm_23y_cont" {
+			local outlab "Self-harm (number)"
+			local stat "M"
+		}
+
+		if "`y'" == "suicide_23y" {
+			local outlab "Attempted suicide (ever)"
+			local stat "% yes"
+			local binary = 1
+		}
+
+		*----------------------------------------------------
+		* Continuous outcomes: use mean
+		*----------------------------------------------------
+
+		if `binary' == 0 {
+
+			quietly mean `y' [pweight = hovwt2], over(`group')
+
+			* r(table) rows:
+			* 1 = estimate
+			* 5 = lower bound
+			* 6 = upper bound
+			mata: st_matrix("a", st_matrix("r(table)")[(1,5,6),.]')
+		}
+
+		*----------------------------------------------------
+		* Binary outcomes: use proportion
+		*----------------------------------------------------
+
+		if `binary' == 1 {
+
+			quietly proportion `y' [pweight = hovwt2], over(`group')
+
+			/*
+			For binary 0/1 outcomes with over(`g'), r(table) contains
+			proportions for outcome==0 and outcome==1.
+
+			Assuming both 0 and 1 are present, the outcome==1 estimates
+			are in the second half of the columns.
+			*/
+
+			matrix RT = r(table)
+
+			local first_yes = colsof(RT) / 2 + 1
+			local last_yes  = colsof(RT)
+
+			matrix a = ///
+			(RT[1, `first_yes'..`last_yes'] \ ///
+			 RT[5, `first_yes'..`last_yes'] \ ///
+			 RT[6, `first_yes'..`last_yes'])'
+		}
+
+		*----------------------------------------------------
+		* Post results
+		*----------------------------------------------------
+
+		local i = 1
+
+		foreach lev of local levels {
+
+			quietly count if `group' == `lev' & !missing(`y') & !missing(hovwt2)
+			local n = r(N)
+
+			local vl : value label `group'
+
+			if "`vl'" != "" {
+				local catlab : label `vl' `lev'
+			}
+			
+			else {
+				local catlab "`lev'"
+			}
+
+			post results ///
+				("`group'") ///
+				(`lev') ///
+				("`catlab'") ///
+				("`outlab'") ///
+				("`stat'") ///
+				(a[`i',1]) ///
+				(a[`i',2]) ///
+				(a[`i',3]) ///
+				(`n')
+
+			local ++i
+		}
+	}
+}
+
+postclose results
+
+use `weighted_estimates', clear
+
+foreach var in estimate lb ub {
+	replace `var' = . if n_obs < 10
+}
+
+order domain category category_label outcome statistic estimate lb ub n_obs
+
+save "Datasets/20260727_weighted_descriptive_estimates.dta", replace
+
+
+
+
+
+**# VISUALISATION
+
+use "Datasets/20260727_weighted_descriptive_estimates.dta", clear
+
+
+* Create ordered outcome variable
+
+gen outcome_order = .
+
+replace outcome_order = 1 if outcome == "Kessler-6"
+replace outcome_order = 2 if outcome == "Caseness"
+replace outcome_order = 3 if outcome == "SWEMWBS"
+replace outcome_order = 4 if outcome == "Self-harm (any)"
+replace outcome_order = 5 if outcome == "Attempted suicide (ever)"
+replace outcome_order = 6 if outcome == "Self-harm (number)"
+
+label define outcome_order_lbl ///
+	1 "Kessler-6" ///
+	2 "Caseness (%)" ///
+	3 "SWEMWBS" ///
+	4 "Self-harm any (%)" ///
+	5 "Attempted suicide (%)" ///
+	6 "Number of self-harm behaviours", replace
+
+label values outcome_order outcome_order_lbl
+
+
+* Convert binary outcomes from proportions to percentages
+
+foreach var in estimate lb ub {
+	replace `var' = `var' * 100 if inlist(outcome_order,2,4,5)
+}
+
+* Capping at 0 estimates for mean Number of" "self-harm behaviours
+
+sum estimate lb ub if outcome == "Self-harm (number)"
+recode lb (min/0 = 0) if outcome == "Self-harm (number)"
+
+* Exclude missing categories from figures
+
+drop if category == 999
+
+* Set min, max, and step for each outcome
+
+tabstat lb ub, statistics(min max) by(outcome)
+
+global min_1 = 4 // range of 0-24 for K6
+global max_1 = 16
+global step_1 = 2
+
+global min_3 = 15 // range of 7-35 for SWEMWBS
+global max_3 = 27
+global step_3 = 2
+
+foreach o in 2 4 { // range of 0-100 for binary outcomes (probability)
+	global min_`o' = 0
+	global max_`o' = 100
+	global step_`o' = 20
+}
+
+foreach o in 5 { // 
+	global min_`o' = 0
+	global max_`o' = 70
+	global step_`o' = 10
+}
+
+
+global min_6 = 0 // range of 0-3 for Number of" "self-harm behaviours 
+global max_6 = 3
+global step_6 = .5
+
+* Create legend helper for combined graphs
+
+gen legend_estimate = 1
+* bysort domain category (outcome_order): replace legend_estimate = 1 if _n == 1
+
+
+**## By birthsex
+
+	sum category if domain == "birthsex"
+	global ylabmin = r(min)
+	global ylabmax = r(max)
+
+	* Labels only
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "birthsex"
+		
+		twoway ///
+			(scatter category legend_estimate if category == 1, mcolor(stc1%50) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 2, mcolor(stc2%80) msymbol(square) msize(large)) ///
+			, ///
+			title(" " " ", size(*.7)) /// 
+			xtitle(" ", size(*.8)) /// 
+			xlabel(1 " ", angle(horizontal) labsize(*.8) nogrid) ///
+			ytitle("") ///
+			ylabel( ///
+				1 "AFAB" ///
+				2 "AMAB" ///
+				, angle(horizontal) labsize(*0.8) notick) ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("birthsex_label", replace)
+			
+			graph save "estimates/descriptives/birthsex_label", replace 
+			
+		restore
+			
+	
+	* Kessler-6
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "birthsex"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological distress" "(Kessler-6)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_1($step_1)$max_1, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("birthsex_k6", replace)
+			
+			graph save "estimates/descriptives/birthsex_k6", replace 
+			
+		restore
+	
+	* Caseness
+
+		preserve
+
+		keep if outcome == "Caseness"
+		keep if domain == "birthsex"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Caseness" "(Kessler-6 = 13+) ", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_2($step_2)$max_2, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("birthsex_caseness", replace)
+			
+			graph save "estimates/descriptives/birthsex_caseness", replace 
+			
+		restore
+		
+		
+	* SWEMWBS
+
+		preserve
+
+		keep if outcome == "SWEMWBS"
+		keep if domain == "birthsex"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological wellbeing" "(SWEMWBS)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_3($step_3)$max_3, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("birthsex_swemwbs", replace)
+			
+			graph save "estimates/descriptives/birthsex_swemwbs", replace 
+			
+		restore
+		
+		
+	* Self-harm (any)
+
+		preserve
+
+		keep if outcome == "Self-harm (any)"
+		keep if domain == "birthsex"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Any self-harm" "in last 12 months", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_4($step_4)$max_4, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("birthsex_selfharm", replace)
+			
+			graph save "estimates/descriptives/birthsex_selfharm", replace 
+			
+		restore
+		
+	* Suicide attempts
+
+		preserve
+
+		keep if outcome == "Attempted suicide (ever)"
+		keep if domain == "birthsex"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Lifetime" "suicide attempts", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_5($step_5)$max_5, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("birthsex_suicide", replace)
+			
+			graph save "estimates/descriptives/birthsex_suicide", replace 
+			
+		restore
+		
+		
+	* Self-harm (number)
+
+		preserve
+
+		keep if outcome == "Self-harm (number)"
+		keep if domain == "birthsex"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Number of" "self-harm behaviours", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_6($step_6)$max_6, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("birthsex_selfharm_cont", replace)
+			
+			graph save "estimates/descriptives/birthsex_selfharm_cont", replace 
+			
+		restore
+		
+		
+**## By ethnicity (full)
+
+	sum category if domain == "ethnicity"
+	global ylabmin = r(min)
+	global ylabmax = r(max)
+	
+
+	* Labels only
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "ethnicity"
+		
+		twoway ///
+			(scatter category legend_estimate if category == 1, mcolor(stc1%50) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 1, mcolor(stc1%50) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 2, mcolor(stc2%80) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 3, mcolor(stc2%60) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 4, mcolor(stc2%40) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 5, mcolor(stc2%20) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 6, mcolor(stc3%60) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 7, mcolor(stc4%80) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 8, mcolor(stc4%40) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 9, mcolor(stc5%80) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 10, mcolor(stc6%80) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 11, mcolor(stc6%60) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 12, mcolor(stc6%40) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 13, mcolor(stc5%60) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 14, mcolor(stc5%40) msymbol(square) msize(large)) ///
+			, ///
+			title(" " " ", size(*.7)) /// 
+			xtitle(" ", size(*.8)) /// 
+			xlabel(1 " ", angle(horizontal) labsize(*.8) nogrid) ///
+			ytitle("") ///
+			ylabel( ///
+				1 "White" ///
+				2 "Mixed White & Black Caribbean" ///
+				3 "Mixed White & Black African" ///
+				4 "Mixed White & Asian" ///
+				5 "Other Mixed" ///
+				6 "Indian" ///
+				7 "Pakistani" ///
+				8 "Bangladeshi" ///
+				9 "Other Asian" ///
+				10 "Black African" ///
+				11 "Black Caribbean" ///
+				12 "Other Black" ///
+				13 "Arab" ///
+				14 "Other" ///
+				, angle(horizontal) labsize(*0.8) notick) ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_label", replace)
+			
+			graph save "estimates/descriptives/ethnicity_label", replace 
+			
+		restore
+			
+	* Kessler-6
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "ethnicity"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc4%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 8, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 9, horizontal lcolor(stc5%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 10, horizontal lcolor(stc6%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 11, horizontal lcolor(stc6%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 12, horizontal lcolor(stc6%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 13, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 14, horizontal lcolor(stc5%40) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological distress" "(Kessler-6)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_1($step_1)$max_1, labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_k6", replace)
+			
+			graph save "estimates/descriptives/ethnicity_k6", replace 
+			
+		restore
+	
+	* Caseness
+
+		preserve
+
+		keep if outcome == "Caseness"
+		keep if domain == "ethnicity"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc4%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 8, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 9, horizontal lcolor(stc5%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 10, horizontal lcolor(stc6%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 11, horizontal lcolor(stc6%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 12, horizontal lcolor(stc6%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 13, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 14, horizontal lcolor(stc5%40) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Caseness" "(Kessler-6 = 13+) ", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_2($step_2)$max_2, labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_caseness", replace)
+			
+			graph save "estimates/descriptives/ethnicity_caseness", replace 
+			
+		restore
+		
+		
+	* SWEMWBS
+
+		preserve
+
+		keep if outcome == "SWEMWBS"
+		keep if domain == "ethnicity"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc4%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 8, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 9, horizontal lcolor(stc5%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 10, horizontal lcolor(stc6%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 11, horizontal lcolor(stc6%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 12, horizontal lcolor(stc6%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 13, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 14, horizontal lcolor(stc5%40) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological wellbeing" "(SWEMWBS)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_3($step_3)$max_3, labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_swemwbs", replace)
+			
+			graph save "estimates/descriptives/ethnicity_swemwbs", replace 
+			
+		restore
+		
+		
+	* Self-harm (any)
+
+		preserve
+
+		keep if outcome == "Self-harm (any)"
+		keep if domain == "ethnicity"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc4%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 8, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 9, horizontal lcolor(stc5%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 10, horizontal lcolor(stc6%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 11, horizontal lcolor(stc6%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 12, horizontal lcolor(stc6%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 13, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 14, horizontal lcolor(stc5%40) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Any self-harm" "in last 12 months", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_4($step_4)$max_4, labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_selfharm", replace)
+			
+			graph save "estimates/descriptives/ethnicity_selfharm", replace 
+			
+		restore
+		
+	* Suicide attempts
+
+		preserve
+
+		keep if outcome == "Attempted suicide (ever)"
+		keep if domain == "ethnicity"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc4%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 8, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 9, horizontal lcolor(stc5%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 10, horizontal lcolor(stc6%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 11, horizontal lcolor(stc6%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 12, horizontal lcolor(stc6%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 13, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 14, horizontal lcolor(stc5%40) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Lifetime" "suicide attempts", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_5($step_5)$max_5, labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_suicide", replace)
+			
+			graph save "estimates/descriptives/ethnicity_suicide", replace 
+			
+		restore
+		
+		
+	* Self-harm (number)
+
+		preserve
+
+		keep if outcome == "Self-harm (number)"
+		keep if domain == "ethnicity"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc4%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 8, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 9, horizontal lcolor(stc5%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 10, horizontal lcolor(stc6%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 11, horizontal lcolor(stc6%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 12, horizontal lcolor(stc6%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 13, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 14, horizontal lcolor(stc5%40) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Number of" "self-harm behaviours", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_6($step_6)$max_6, labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_selfharm_cont", replace)
+			
+			graph save "estimates/descriptives/ethnicity_selfharm_cont", replace 
+			
+		restore
+
+		
+		
+**## By ethnicity_6cat
+
+	sum category if domain == "ethnicity_6cat"
+	global ylabmin = r(min)
+	global ylabmax = r(max)
+	
+	* Labels only
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "ethnicity_6cat"
+		
+		twoway ///
+			(scatter category legend_estimate if category == 1, mcolor(stc1%50) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 2, mcolor(stc2%80) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 3, mcolor(stc3%60) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 4, mcolor(stc4%40) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 5, mcolor(stc6%20) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 6, mcolor(stc5%60) msymbol(square) msize(large)) ///
+			, ///
+			title(" " " ", size(*.7)) /// 
+			xtitle(" ", size(*.8)) /// 
+			xlabel(1 " ", angle(horizontal) labsize(*.8) nogrid) ///
+			ytitle("") ///
+			ylabel( ///
+				1 "White" ///
+				2 "Mixed" ///
+				3 "Indian" ///
+				4 "Pakistani & Bangladeshi" ///
+				5 "Black" ///
+				6 "Other" ///
+				, angle(horizontal) labsize(*0.8) notick) ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_6cat_label", replace)
+			
+			graph save "estimates/descriptives/ethnicity_6cat_label", replace  
+			
+		restore
+			
+			
+		* Kessler-6
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "ethnicity_6cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc6%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological distress" "(Kessler-6)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_1($step_1)$max_1, angle(horizontal) labsize(*.8)) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_6cat_k6", replace)
+			
+			graph save "estimates/descriptives/ethnicity_6cat_k6", replace 
+			
+		restore
+	
+	* Caseness
+
+		preserve
+
+		keep if outcome == "Caseness"
+		keep if domain == "ethnicity_6cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc6%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Caseness" "(Kessler-6 = 13+) ", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_2($step_2)$max_2, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_6cat_caseness", replace)
+			
+			graph save "estimates/descriptives/ethnicity_6cat_caseness", replace 
+			
+		restore
+		
+		
+	* SWEMWBS
+
+		preserve
+
+		keep if outcome == "SWEMWBS"
+		keep if domain == "ethnicity_6cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc6%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological wellbeing" "(SWEMWBS)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_3($step_3)$max_3, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_6cat_swemwbs", replace)
+			
+			graph save "estimates/descriptives/ethnicity_6cat_swemwbs", replace 
+			
+		restore
+		
+		
+	* Self-harm (any)
+
+		preserve
+
+		keep if outcome == "Self-harm (any)"
+		keep if domain == "ethnicity_6cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc6%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Any self-harm" "in last 12 months", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_4($step_4)$max_4, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_6cat_selfharm", replace)
+			
+			graph save "estimates/descriptives/ethnicity_6cat_selfharm", replace 
+			
+		restore
+		
+	* Suicide attempts
+
+		preserve
+
+		keep if outcome == "Attempted suicide (ever)"
+		keep if domain == "ethnicity_6cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc6%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Lifetime" "suicide attempts", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_5($step_5)$max_5, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_6cat_suicide", replace)
+			
+			graph save "estimates/descriptives/ethnicity_6cat_suicide", replace 
+			
+		restore
+		
+		
+	* Self-harm (number)
+
+		preserve
+
+		keep if outcome == "Self-harm (number)"
+		keep if domain == "ethnicity_6cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc3%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc4%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc6%20) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc5%60) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Number of" "self-harm behaviours", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_6($step_6)$max_6, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("ethnicity_6cat_selfharm_cont", replace)
+			
+			graph save "estimates/descriptives/ethnicity_6cat_selfharm_cont", replace 
+			
+		restore		
+	
+	
+
+**## By sexuality (full)
+
+	sum category if domain == "sexuality_23y_cat"
+	global ylabmin = r(min)
+	global ylabmax = r(max)
+
+	* Labels only
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "sexuality_23y_cat"
+		
+		twoway ///
+			(scatter category legend_estimate if category == 1, mcolor(stc1%50) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 2, mcolor(stc2%80) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 3, mcolor(stc2%70) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 4, mcolor(stc2%60) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 5, mcolor(stc2%50) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 6, mcolor(stc2%40) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 7, mcolor(stc2%30) msymbol(square) msize(large)) ///
+			, ///
+			title(" " " ", size(*.7)) /// 
+			xtitle(" ", size(*.8)) /// 
+			xlabel(1 " ", angle(horizontal) labsize(*.8) nogrid) ///
+			ytitle("") ///
+			ylabel( ///
+				1 "Heterosexual" ///
+				2 "Gay or Lesbian" ///
+				3 "Bisexual" ///
+				4 "Other" ///
+				5 "Pansexual" ///
+				6 "Asexual" ///
+				7 "Queer" ///
+				, angle(horizontal) labsize(*0.8) notick) ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexuality_label", replace)
+			
+			graph save "estimates/descriptives/sexuality_label", replace  
+			
+		restore
+			
+			
+	* Kessler-6
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "sexuality_23y_cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%70) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc2%30) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological distress" "(Kessler-6)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_1($step_1)$max_1, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexuality_k6", replace)
+			
+			graph save "estimates/descriptives/sexuality_k6", replace 
+			
+		restore
+	
+	* Caseness
+
+		preserve
+
+		keep if outcome == "Caseness"
+		keep if domain == "sexuality_23y_cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%70) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc2%30) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Caseness" "(Kessler-6 = 13+) ", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_2($step_2)$max_2, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexuality_caseness", replace)
+			
+			graph save "estimates/descriptives/sexuality_caseness", replace 
+			
+		restore
+		
+		
+	* SWEMWBS
+
+		preserve
+
+		keep if outcome == "SWEMWBS"
+		keep if domain == "sexuality_23y_cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%70) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc2%30) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological wellbeing" "(SWEMWBS)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_3($step_3)$max_3, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexuality_swemwbs", replace)
+			
+			graph save "estimates/descriptives/sexuality_swemwbs", replace 
+			
+		restore
+		
+		
+	* Self-harm (any)
+
+		preserve
+
+		keep if outcome == "Self-harm (any)"
+		keep if domain == "sexuality_23y_cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%70) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc2%30) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Any self-harm" "in last 12 months", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_4($step_4)$max_4, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexuality_selfharm", replace)
+			
+			graph save "estimates/descriptives/sexuality_selfharm", replace 
+			
+		restore
+		
+	* Suicide attempts
+
+		preserve
+
+		keep if outcome == "Attempted suicide (ever)"
+		keep if domain == "sexuality_23y_cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%70) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc2%30) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Lifetime" "suicide attempts", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_5($step_5)$max_5, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexuality_suicide", replace)
+			
+			graph save "estimates/descriptives/sexuality_suicide", replace 
+			
+		restore
+		
+		
+	* Self-harm (number)
+
+		preserve
+
+		keep if outcome == "Self-harm (number)"
+		keep if domain == "sexuality_23y_cat"
+		
+		twoway ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 2, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(rspike lb ub category if category == 3, horizontal lcolor(stc2%70) lwidth(*4)) ///
+			(rspike lb ub category if category == 4, horizontal lcolor(stc2%60) lwidth(*4)) ///
+			(rspike lb ub category if category == 5, horizontal lcolor(stc2%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 6, horizontal lcolor(stc2%40) lwidth(*4)) ///
+			(rspike lb ub category if category == 7, horizontal lcolor(stc2%30) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Number of" "self-harm behaviours", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_6($step_6)$max_6, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexuality_selfharm_cont", replace)
+			
+			graph save "estimates/descriptives/sexuality_selfharm_cont", replace 
+			
+		restore
+		
+		
+		
+**## By sexual_minority_23y_augm
+
+	sum category if domain == "sexual_minority_23y_augm"
+	global ylabmin = r(min)
+	global ylabmax = r(max)
+
+	* Labels only
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "sexual_minority_23y_augm"
+		
+		twoway ///
+			(scatter category legend_estimate if category == 0, mcolor(stc1%50) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 1, mcolor(stc2%80) msymbol(square) msize(large)) ///
+			, ///
+			title(" " " ", size(*.7)) /// 
+			xtitle(" ", size(*.8)) /// 
+			xlabel(1 " ", angle(horizontal) labsize(*.8) nogrid) ///
+			ytitle("") ///
+			ylabel( ///
+				0 "Heterosexual" ///
+				1 "Sexual minority" ///
+				, angle(horizontal) labsize(*0.8) notick) ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexualmin_label", replace)
+			
+			graph save "estimates/descriptives/sexualmin_label", replace  
+			
+		restore
+			
+			
+	* Kessler-6
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "sexual_minority_23y_augm"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological distress" "(Kessler-6)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_1($step_1)$max_1, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexualmin_k6", replace)
+			
+			graph save "estimates/descriptives/sexualmin_k6", replace 
+			
+		restore
+	
+	* Caseness
+
+		preserve
+
+		keep if outcome == "Caseness"
+		keep if domain == "sexual_minority_23y_augm"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Caseness" "(Kessler-6 = 13+) ", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_2($step_2)$max_2, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexualmin_caseness", replace)
+			
+			graph save "estimates/descriptives/sexualmin_caseness", replace 
+			
+		restore
+		
+		
+	* SWEMWBS
+
+		preserve
+
+		keep if outcome == "SWEMWBS"
+		keep if domain == "sexual_minority_23y_augm"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological wellbeing" "(SWEMWBS)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_3($step_3)$max_3, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexualmin_swemwbs", replace)
+			
+			graph save "estimates/descriptives/sexualmin_swemwbs", replace 
+			
+		restore
+		
+		
+	* Self-harm (any)
+
+		preserve
+
+		keep if outcome == "Self-harm (any)"
+		keep if domain == "sexual_minority_23y_augm"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Any self-harm" "in last 12 months", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_4($step_4)$max_4, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexualmin_selfharm", replace)
+			
+			graph save "estimates/descriptives/sexualmin_selfharm", replace 
+			
+		restore
+		
+	* Suicide attempts
+
+		preserve
+
+		keep if outcome == "Attempted suicide (ever)"
+		keep if domain == "sexual_minority_23y_augm"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Lifetime" "suicide attempts", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_5($step_5)$max_5, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexualmin_suicide", replace)
+			
+			graph save "estimates/descriptives/sexualmin_suicide", replace 
+			
+		restore
+		
+		
+	* Self-harm (number)
+
+		preserve
+
+		keep if outcome == "Self-harm (number)"
+		keep if domain == "sexual_minority_23y_augm"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Number of" "self-harm behaviours", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_6($step_6)$max_6, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("sexualmin_selfharm_cont", replace)
+			
+			graph save "estimates/descriptives/sexualmin_selfharm_cont", replace 
+			
+		restore
+	
+	
+**## By poverty_9m_3y
+
+	sum category if domain == "poverty_9m_3y"
+	global ylabmin = r(min)
+	global ylabmax = r(max)
+
+	* Labels only
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "poverty_9m_3y"
+		
+		twoway ///
+			(scatter category legend_estimate if category == 0, mcolor(stc1%50) msymbol(square) msize(large)) ///
+			(scatter category legend_estimate if category == 1, mcolor(stc2%80) msymbol(square) msize(large)) ///
+			, ///
+			title(" " " ", size(*.7)) /// 
+			xtitle(" ", size(*.8)) /// 
+			xlabel(1 " ", angle(horizontal) labsize(*.8) nogrid) ///
+			ytitle("") ///
+			ylabel( ///
+				0 "No childhood poverty" ///
+				1 "Childhood poverty" ///
+				, angle(horizontal) labsize(*0.8) notick) ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("poverty_label", replace)
+			
+			graph save "estimates/descriptives/poverty_label", replace  
+			
+		restore
+			
+			
+		* Kessler-6
+
+		preserve
+
+		keep if outcome == "Kessler-6"
+		keep if domain == "poverty_9m_3y"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological distress" "(Kessler-6)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_1($step_1)$max_1, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("poverty_k6", replace)
+			
+			graph save "estimates/descriptives/poverty_k6", replace 
+			
+		restore
+	
+	* Caseness
+
+		preserve
+
+		keep if outcome == "Caseness"
+		keep if domain == "poverty_9m_3y"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Caseness" "(Kessler-6 = 13+) ", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_2($step_2)$max_2, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("poverty_caseness", replace)
+			
+			graph save "estimates/descriptives/poverty_caseness", replace 
+			
+		restore
+		
+		
+	* SWEMWBS
+
+		preserve
+
+		keep if outcome == "SWEMWBS"
+		keep if domain == "poverty_9m_3y"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Psychological wellbeing" "(SWEMWBS)", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_3($step_3)$max_3, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("poverty_swemwbs", replace)
+			
+			graph save "estimates/descriptives/poverty_swemwbs", replace 
+			
+		restore
+		
+		
+	* Self-harm (any)
+
+		preserve
+
+		keep if outcome == "Self-harm (any)"
+		keep if domain == "poverty_9m_3y"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Any self-harm" "in last 12 months", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_4($step_4)$max_4, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("poverty_selfharm", replace)
+			
+			graph save "estimates/descriptives/poverty_selfharm", replace 
+			
+		restore
+		
+	* Suicide attempts
+
+		preserve
+
+		keep if outcome == "Attempted suicide (ever)"
+		keep if domain == "poverty_9m_3y"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Lifetime" "suicide attempts", size(*.7)) /// 
+			xtitle("Weighted probability and 95% CI", size(*.8)) /// 
+			xlabel($min_5($step_5)$max_5, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("poverty_suicide", replace)
+			
+			graph save "estimates/descriptives/poverty_suicide", replace 
+			
+		restore
+		
+		
+	* Self-harm (number)
+
+		preserve
+
+		keep if outcome == "Self-harm (number)"
+		keep if domain == "poverty_9m_3y"
+		
+		twoway ///
+			(rspike lb ub category if category == 0, horizontal lcolor(stc1%50) lwidth(*4)) ///
+			(rspike lb ub category if category == 1, horizontal lcolor(stc2%80) lwidth(*4)) ///
+			(scatter category estimate, mcolor(black) msymbol(smcircle)) ///
+			, ///
+			title("Number of" "self-harm behaviours", size(*.7)) /// 
+			xtitle("Weighted mean and 95% CI", size(*.8)) /// 
+			xlabel($min_6($step_6)$max_6, angle(horizontal) labsize(*.8)) ///
+			ylab( $ylabmin (1) $ylabmax , nolab) ///
+			ytitle("") ///
+			yscale(reverse) ///
+			legend(off) ///
+			name("poverty_selfharm_cont", replace)
+			
+			graph save "estimates/descriptives/poverty_selfharm_cont", replace 
+			
+		restore	
+	
+**## Combined graphs
+
+	foreach var in birthsex ethnicity ethnicity_6cat sexuality sexualmin poverty {
+		graph combine ///
+			"estimates/descriptives/`var'_label" ///
+			"estimates/descriptives/`var'_label" ///
+			"estimates/descriptives/`var'_k6" ///
+			"estimates/descriptives/`var'_caseness" ///
+			"estimates/descriptives/`var'_selfharm" ///
+			"estimates/descriptives/`var'_selfharm_cont" ///
+			"estimates/descriptives/`var'_swemwbs" ///
+			"estimates/descriptives/`var'_suicide" ///
+			, colf rows(2) name(`var'_comb, replace)
+			
+		graph save "estimates/descriptives/`var'_comb", replace
+		graph export "estimates/descriptives/`var'_comb.pdf", replace
+		graph export "estimates/descriptives/`var'_comb.svg", replace
+		graph export "estimates/descriptives/`var'_comb.png", replace width(1000)
+	}
