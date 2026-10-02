@@ -1,10 +1,19 @@
-kaboom
+kaboom // added to prevent running the whole script when using the run command shortcut
 
-**# Supp Table 1: Descriptive statistics by full single axis variables
+**# Setup
 
-	use Datasets/20260629_mcs_combined_clean, clear
+	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder including working datasets
+	
+	global excelfile "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses" // folder where Excel file with results is / will be located
+	
+	global mplus "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Mplus" // folder with files for Mplus
 
-	putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260731_table_s1")
+	
+**# eTable 8.1: Descriptive statistics by full single axis variables
+
+	use "$datasets/mcs_combined_clean", clear
+
+	putexcel set "$excelfile/MMV MCS23 results.xlsx", modify sheet("descriptives_before_recoding")
 	
 	putexcel B1 = "Unweighted"
 	
@@ -261,9 +270,9 @@ kaboom
 	
 **# Table 1
 	
-	use Datasets/20260629_mcs_combined_clean, clear
+	use "$datasets/mcs_combined_clean", clear
 
-	putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260731_table1")
+	putexcel set "$excelfile/MMV MCS23 results.xlsx", modify sheet("table_1")
 	
 	putexcel B1 = "Unweighted"
 	
@@ -508,11 +517,11 @@ kaboom
 
 
 	
-**# Strata creation // need to remove the information on the results from the comments, could also remove the checking of which strata have no variation in sh items as this is done below in the creation of the Mplus datasets
+**# Strata creation 
 
-	use Datasets/20260629_mcs_combined_clean, clear
+	use "$datasets/mcs_combined_clean", clear
 	
-	* Renaming variables to simplify things going forward, could do this at data management syntax instead
+	* Renaming variables
 	rename sexual_minority_23y sexual_minority_23y_og
 	rename sexual_minority_23y_augm sexual_minority_23y
 
@@ -618,8 +627,9 @@ kaboom
 
 
 	sort MCSIDCNUM
-		
-	save Datasets/20260629_mcs_combined_strata, replace	
+	
+	compress
+	save "$datasets/mcs_combined_strata", replace	
 	
 
 	
@@ -631,54 +641,11 @@ kaboom
 
 
 	
+**# Table with % of strata with x+ obs
 	
-**# Supp Table 2: N of obs overall and by outcome per stratum
+	use "$datasets/mcs_combined_strata", clear
 	
-	use Datasets/20260629_mcs_combined_strata, clear
-	
-	putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_table_s2")
-	
-	putexcel A1 = "Stratum"
-	putexcel B1 = "Overall - N"	
-	putexcel C1 = "Non-missing Kessler-6 - N"
-	putexcel D1 = "Non-missing SWEMWBS - N"
-	putexcel E1 = "Non-missing self-harm (any) - N"
-	putexcel F1 = "Non-missing self-harm (number) - N"
-	putexcel G1 = "Non-missing attempted suicide (ever) - N"
-		
-	tab strata48, matcell(freq) matrow(names)
-	putexcel A2 = matrix(names)
-	putexcel B2 = matrix(freq)
-	
-	local letternum = 67 // 65-90 are A-Z (uppercase) in ASCII codes, so 67 starts at C
-	
-	foreach outcome in kessler_sr_23y swemwbs_sr_23y selfharm_23y selfharm_23y_cont suicide_23y {
-	
-		recode `outcome' (. = 0) (else = 1), gen(`outcome'_nonmiss)
-		
-		local col = char(`letternum')
-		putexcel `col'1 = "Non-missing `outcome' - N"
-		tab strata48 if `outcome'_nonmiss == 1, matcell(freq)
-		putexcel `col'2 = matrix(freq)
-		local letternum = `letternum' + 1
-		
-	}
-	
-
-	
-	
-********************************************************************************
-********************************************************************************
-********************************************************************************
-
-
-
-	
-**# Supp Table 3: % of strata with x+ obs
-	
-	use Datasets/20260629_mcs_combined_strata, clear	
-	
-	putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_table_s3")
+	putexcel set "$excelfile/MMV MCS23 results.xlsx", modify sheet("strata_size_range")
 	
 	putexcel A1 = "Sample size"
 	putexcel B1 = "No of strata"
@@ -841,12 +808,12 @@ kaboom
 
 	use `lookup_tmp', clear
 	sort stratification stratum
-	save Mplus/datasets/20260629_strata_lookup.dta, replace
+	save "$mplus/datasets/strata_lookup.dta", replace
 
 	
 	**## Create audit dataset and loop through strata: audit + export datasets
 	
-	use Datasets/20260629_mcs_combined_strata, clear
+	use "$datasets/mcs_combined_strata", clear
 	
 	tempfile audit_tmp
 	postfile audit_handle ///
@@ -919,7 +886,7 @@ kaboom
 				
 				sort MCSIDCNUM_link
 			
-				export delimited using Mplus/datasets/20260629_align_`strata', novarnames nolabel replace
+				export delimited using "$mplus/datasets/align_`strata'", novarnames nolabel replace
 				
 			restore
 		}
@@ -939,7 +906,7 @@ kaboom
 			restore
 
 			preserve
-				use Mplus/datasets/20260629_strata_lookup.dta, clear
+				use "$mplus/datasets/strata_lookup.dta", clear
 				keep if stratification == "`strata'"
 
 				merge 1:1 stratification stratum using `obs_`strata''
@@ -965,27 +932,12 @@ kaboom
 		use `audit_tmp', clear
 		sort stratification reason stratum
 
-		save Mplus/datasets/20260629_strata_audit_detail.dta, replace
-		export delimited using Mplus/datasets/20260629_strata_audit_detail.csv, replace
+		save "$mplus/datasets/strata_audit_detail.dta", replace
+		export delimited using "$mplus/datasets/strata_audit_detail.csv", replace
 
 		preserve
 			collapse (count) n_strata = stratum (sum) n_obs = n_obs, by(stratification reason)
 			sort stratification reason
-			save Mplus/datasets/20260629_strata_audit_summary.dta, replace
-			export delimited using Mplus/datasets/20260629_strata_audit_summary.csv, replace
+			save "$mplus/datasets/strata_audit_summary.dta", replace
+			export delimited using "$mplus/datasets/strata_audit_summary.csv", replace
 		restore
-		
-		
-**# Check who is excluded from the general sample across main analyses
-
-	use Datasets/20260629_mcs_combined_strata, clear
-	
-	distinct MCSIDCNUM
-	
-	foreach var in kessler_sr_23y caseness_23y swemwbs_sr_23y selfharm_23y suicide_23y {
-		quietly: reg `var' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y
-		gen `var'_sample = e(sample)
-	}
-		
-	tab1 *sample
-	tab1 *sample if !mopup_23y

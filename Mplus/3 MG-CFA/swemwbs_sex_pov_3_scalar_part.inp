@@ -1,6 +1,6 @@
 DATA: 
     
-    FILE = "../datasets/20260611_align_strata4_sex_pov.csv";
+    FILE = "../datasets/align_strata4_sex_pov.csv"; ! folder where Mplus datasets have been stored
 
 VARIABLE:
 
@@ -129,8 +129,3 @@ VARIABLE:
 
         TECH1 STDYX;
         MODINDICES(20);
-
-    SAVEDATA:
-
-        FILE = 20260611_swemwbs_sex_pov_scalar_part_fscores.csv;
-        SAVE = FSCORES;
