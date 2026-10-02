@@ -1,8 +1,6 @@
-// Note: the script can be substantially shortened by removing all the variables that would have otherwise informed the imputation process
-
 kaboom // added to prevent running the whole script when using the run command shortcut
 
-**# Folders
+**# Setup
 
 	global mcs1 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\4683 Millennium Cohort Study Age 9 months, Sweep 1, 2001\UKDA-4683-stata\stata\stata13" // sweep 1
 	global mcs2 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\5350 Millennium Cohort Study Age 3, Sweep 2, 2004\UKDA-5350-stata\stata\stata13" // sweep 2
@@ -13,6 +11,8 @@ kaboom // added to prevent running the whole script when using the run command s
 	global mcs7 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\8682 Millennium Cohort Study Age 17, Sweep 7, 2018\UKDA-8682-stata\stata\stata13" // sweep 7
 	global mcs8 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\9509 Millennium Cohort Study Sweep 8, Age 23, 2023-2025\UKDA-9509-stata 202606\stata\stata13" // sweep 8
 	global mcslong "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\8172 Millennium Cohort Study Sweeps 1-8, 2001-2025 Longitudinal Files\UKDA-8172-stata 202606\stata\stata13" // longitudinal file
+	
+	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder to save working datasets
 		
 **# Data from previous sweeps
 
@@ -461,27 +461,23 @@ kaboom // added to prevent running the whole script when using the run command s
 		merge 1:1 MCSID CNUM00 using `mcs8', nogen
 		merge 1:1 MCSID CNUM00 using `mcslong', nogen
 
-	save Datasets/20260629_mcs_combined, replace
-	
-
-	
-	
 	
 **# Combined data management + preparation + cleaning	
-	
-	use Datasets/20260629_mcs_combined, clear
 	
 	* Restricting sample to participants in age 23 sweep
 	
 		recode hovwt2 (-2 -1 = .)
 		
-		keep if hovwt2 != . // dropped 9883
-		keep if data_availability == 1 // dropped 1
-		ta mode_23y, miss // 41 cases missing mode of collection
-		ta hcasetype // which are proxy interviews
+		keep if hovwt2 != . // keeping cases with valid weights
+		keep if data_availability == 1 // keeping cases with data available for research
 		drop if hcasetype == 3 // dropping proxy interviews
 		egen MCSIDCNUM = concat(MCSID CNUM00)
-		distinct MCSIDCNUM // 9675 participants, expected overall sample size in preregistration
+			
+			* the following line requires the "distinct" package, which can be installed using the following line of code
+			* ssc install distinct
+		
+		distinct MCSIDCNUM // 9675 participants, as per preregistration
+			
 	
 	* Creating single variable for sex assigned at birth
 	
@@ -503,7 +499,7 @@ kaboom // added to prevent running the whole script when using the run command s
 			replace ethnicity_parentreported = `var' if ethnicity_parentreported == . & `var' != .
 		}
 		label values ethnicity_parentreported ADC11E00
-		ta ethnicity_parentreported, miss // going backwards to impute the parent-reported information
+		ta ethnicity_parentreported, miss
 		
 		foreach parent in mother father {
 			gen ethnicity_`parent' = ethnicity_`parent'_9m
@@ -636,7 +632,7 @@ kaboom // added to prevent running the whole script when using the run command s
 		replace poverty_9m_3y = 0 if poverty_5y_14y_prop == 0 & poverty_9m_3y == .
 		replace poverty_9m_3y = 1 if poverty_5y_14y_prop == 1 & poverty_9m_3y == .
 		
-	* Some required additional steps for compatibility with Mplus, which does not accept string variables as ID or survey feature variables
+	* Some required additional steps for compatibility with Mplus
 	
 		rename sptn00 sptn00_string
 		gen sptn00 = substr(sptn00_string,1,6)
@@ -675,4 +671,6 @@ kaboom // added to prevent running the whole script when using the run command s
 	
 	sort MCSIDCNUM
 	
-	save Datasets/20260629_mcs_combined_clean, replace
+	compress
+	
+	save "$datasets/mcs_combined_clean", replace

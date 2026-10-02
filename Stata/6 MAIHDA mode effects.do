@@ -1,51 +1,57 @@
-kaboom
+kaboom // added to prevent running the whole script when using the run command shortcut
+
+**# Setup
+
+	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder including datasets for analyses
+	
+	global mode "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Estimates/mode" // folder where results from models are saved
+	
+	global excelfile "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses" // folder where Excel file with results is located
 
 **# Data management for mode effects in continuous outcomes
 
-use Datasets/20260629_mcs_combined_strata, clear
-keep if strata48 != .
-	
-gen mode_online = mode_23y
-
-tabstat kessler_sr_23y swemwbs_sr_23y, stats(mean sd) by(mode_online) // these go in the expected direction: that more computerised modes would elicit a higher disclosure (worse outcome levels)
-
-* Scenario A: homogeneous mode effect
-
-forvalues i = 1(1)3 {
-		gen kessler_sr_23y_sim`i' = kessler_sr_23y
-			replace kessler_sr_23y_sim`i' = kessler_sr_23y_sim`i' + `i' if mode_online == 0 & kessler_sr_23y != .
-		gen swemwbs_sr_23y_sim`i' = swemwbs_sr_23y
-			replace swemwbs_sr_23y_sim`i' = swemwbs_sr_23y_sim`i' - `i' if mode_online == 0 & swemwbs_sr_23y != .
-	}
-
-
-* Scenario B: heterogeneous mode effect
-
-forvalues i = 1(1)3 {
-	gen kessler_sr_23y_sim`i'b = kessler_sr_23y_sim`i'
-		replace kessler_sr_23y_sim`i'b = kessler_sr_23y_sim`i'b + 0.5*`i' if inrange(sexual_minority_23y,1,2) & mode_online == 0 & kessler_sr_23y != .
-		replace kessler_sr_23y_sim`i'b = kessler_sr_23y_sim`i'b + 0.5*`i' if inrange(ethnicity_6cat,2,6) & mode_online == 0 & kessler_sr_23y != .
-		replace kessler_sr_23y_sim`i'b = kessler_sr_23y_sim`i'b + 0.5*`i' if poverty_9m_3y == 1 & mode_online == 0 & kessler_sr_23y != .
+	use "$datasets/mcs_combined_strata_fscores", clear
+	keep if strata48 != .
 		
-	gen swemwbs_sr_23y_sim`i'b = swemwbs_sr_23y_sim`i'
-		replace swemwbs_sr_23y_sim`i'b = swemwbs_sr_23y_sim`i'b - 0.5*`i' if inrange(sexual_minority_23y,1,2) & mode_online == 0 & swemwbs_sr_23y != .
-		replace swemwbs_sr_23y_sim`i'b = swemwbs_sr_23y_sim`i'b - 0.5*`i' if inrange(ethnicity_6cat,2,6) & mode_online == 0 & swemwbs_sr_23y != .
-		replace swemwbs_sr_23y_sim`i'b = swemwbs_sr_23y_sim`i'b - 0.5*`i' if poverty_9m_3y == 1 & mode_online == 0 & swemwbs_sr_23y != .
-	}
+	gen mode_online = mode_23y
+	
+	tabstat k6_fscore swemwbs_fscore, stats(mean sd) by(mode_online) // these go in the expected direction: that more computerised modes would elicit a higher disclosure (worse outcome levels)
 
-sum kessler_sr_23y* swemwbs_sr_23y*
-tabstat kessler_sr_23y* swemwbs_sr_23y*, by(mode_online)
+	
+	* Scenario A: homogeneous mode effect
 
-recode kessler_sr_23y* (24/max = 24) // capping at max of 24
-recode swemwbs_sr_23y* (min/7 = 7) // capping at min of 7
+	forvalues i = 1(1)3 {
+			gen k6_fscore_sim`i' = k6_fscore
+				replace k6_fscore_sim`i' = k6_fscore_sim`i' + 0.2*`i' if mode_online == 0 & k6_fscore != .
+			gen swemwbs_fscore_sim`i' = swemwbs_fscore
+				replace swemwbs_fscore_sim`i' = swemwbs_fscore_sim`i' - 0.2*`i' if mode_online == 0 & swemwbs_fscore != .
+		}
 
-rename ///
-	(kessler_sr_23y_sim1b kessler_sr_23y_sim2b kessler_sr_23y_sim3b ///
-	 swemwbs_sr_23y_sim1b swemwbs_sr_23y_sim2b swemwbs_sr_23y_sim3b) ///
-	(kessler_sr_23y_sim4 kessler_sr_23y_sim5 kessler_sr_23y_sim6 ///
-	swemwbs_sr_23y_sim4 swemwbs_sr_23y_sim5 swemwbs_sr_23y_sim6)
 
-save Datasets/20260629_mcs_combined_strata_mode, replace
+	* Scenario B: heterogeneous mode effect
+
+	forvalues i = 1(1)3 {
+		gen k6_fscore_sim`i'b = k6_fscore_sim`i'
+			replace k6_fscore_sim`i'b = k6_fscore_sim`i'b + 0.1*`i' if inrange(sexual_minority_23y,1,2) & mode_online == 0 & k6_fscore != .
+			replace k6_fscore_sim`i'b = k6_fscore_sim`i'b + 0.1*`i' if inrange(ethnicity_6cat,2,6) & mode_online == 0 & k6_fscore != .
+			replace k6_fscore_sim`i'b = k6_fscore_sim`i'b + 0.1*`i' if poverty_9m_3y == 1 & mode_online == 0 & k6_fscore != .
+			
+		gen swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'
+			replace swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'b - 0.1*`i' if inrange(sexual_minority_23y,1,2) & mode_online == 0 & swemwbs_fscore != .
+			replace swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'b - 0.1*`i' if inrange(ethnicity_6cat,2,6) & mode_online == 0 & swemwbs_fscore != .
+			replace swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'b - 0.1*`i' if poverty_9m_3y == 1 & mode_online == 0 & swemwbs_fscore != .
+		}
+
+	sum k6_fscore* swemwbs_fscore*
+	tabstat k6_fscore* swemwbs_fscore*, by(mode_online)
+
+	rename ///
+		(k6_fscore_sim1b k6_fscore_sim2b k6_fscore_sim3b ///
+		 swemwbs_fscore_sim1b swemwbs_fscore_sim2b swemwbs_fscore_sim3b) ///
+		(k6_fscore_sim4 k6_fscore_sim5 k6_fscore_sim6 ///
+		swemwbs_fscore_sim4 swemwbs_fscore_sim5 swemwbs_fscore_sim6)
+
+	save "$datasets/mcs_combined_strata_mode", replace
 
 
 
@@ -54,7 +60,7 @@ save Datasets/20260629_mcs_combined_strata_mode, replace
 ********************************************************************************
 ********************************************************************************
 
-putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
+	putexcel set "$excelfile/MMV MCS23 results.xlsx", modify sheet("mode")
 	
 	putexcel A1 = "Outcome"
 	putexcel B1 = "Mode effect scenario"
@@ -115,58 +121,58 @@ putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
 	
 	forvalues i = 1(1)6 {
 		
-		use Datasets/20260629_mcs_combined_strata_mode, clear
+		use "$datasets/mcs_combined_strata_mode", clear
 		
-		drop if strata48 == . & kessler_sr_23y == .
+		drop if strata48 == . & k6_fscore == .
 		
 	
 	* Null / intercepts-only model
 		
-		meglm kessler_sr_23y_sim`i' [pweight = hovwt2] || strata48:
-			estimates save "estimates/mode/k6_sim`i'_null_ipw", replace
+		meglm k6_fscore_sim`i' [pweight = hovwt2] || strata48:
+			estimates save "$estimates/mode/k6_sim`i'_null", replace
 			estat icc 
 			
-			predict pred_null_ipw, fitted // m1Am, includes fixed and random parts
+			predict pred_null, fitted // m1Am, includes fixed and random parts
 			
 		* Main effects model
 
-		meglm kessler_sr_23y_sim`i' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y [pweight = hovwt2] || strata48:, baselevels
-			estimates save "estimates/mode/k6_sim`i'_main_ipw", replace
+		meglm k6_fscore_sim`i' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y [pweight = hovwt2] || strata48:, baselevels
+			estimates save "$estimates/mode/k6_sim`i'_main", replace
 			estat icc 
 			
-			predict pred_main_ipw, fitted // m1Bm, includes fixed and random parts
-			predict random_main_ipw, reffect reses(random_main_se_ipw) // m1Bu and m1Buse
+			predict pred_main, fitted // m1Bm, includes fixed and random parts
+			predict random_main, reffect reses(random_main_se) // m1Bu and m1Buse
 			
-			predict fixed_main_ipw, xb // fixed-portion linear prediction
-			predict fixed_main_se_ipw, stdp // m1Bxbse, SE for the fixed-portion linear prediction
+			predict fixed_main, xb // fixed-portion linear prediction
+			predict fixed_main_se, stdp // m1Bxbse, SE for the fixed-portion linear prediction
 			
 	**## Saving data
 		
 		compress
-		save "estimates/mode/k6_sim`i'", replace
+		save "$mode/k6_sim`i'", replace
 		
-		use "estimates/mode/k6_sim`i'", clear
+		use "$mode/k6_sim`i'", clear
 		
-		collapse (count) n = kessler_sr_23y_sim`i' ///
-			(mean) kessler_sr_23y_sim`i' ///
-			pred_null_ipw pred_main_ipw random_main_se_ipw random_main_ipw fixed_main_ipw fixed_main_se_ipw, ///
+		collapse (count) n = k6_fscore_sim`i' ///
+			(mean) k6_fscore_sim`i' ///
+			pred_null pred_main random_main_se random_main fixed_main fixed_main_se, ///
 			by(strata48 birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y)
 			
-		format %9.2f kessler pred* random* fixed*
+		format %9.2f k6_fscore_sim`i' pred* random* fixed*
 		compress
-		save "estimates/mode/k6_sim`i'_strata48", replace
+		save "$mode/k6_sim`i'_strata48", replace
 		
 		
 	**## Tabulating results
 		
-		use "estimates/mode/k6_sim`i'", clear
+		use "$mode/k6_sim`i'", clear
 				
 		local rownumber = `i' + 1
 	
 		putexcel A`rownumber' = "k6"
 		putexcel B`rownumber' = "Scenario `i'"
 			
-		estimates use "estimates/mode/k6_sim`i'_null_ipw"
+		estimates use "$mode/k6_sim`i'_null"
 		estimates replay, baselevels
 		
 		putexcel C`rownumber' = `e(N)'
@@ -179,7 +185,7 @@ putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
 		putexcel G`rownumber' = sigma2_u_null 
 		
 		
-		estimates use "estimates/mode/k6_sim`i'_main_ipw"
+		estimates use "$mode/k6_sim`i'_main"
 		estimates replay, baselevels
 
 		mat coeffs = ///
@@ -207,66 +213,78 @@ putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
 		
 	**## Visualising results
 		
-		use "estimates/mode/k6_sim`i'_strata48", clear
+		use "$mode/k6_sim`i'_strata48", clear
+		
+		global miny_pred = -1
+		global maxy_pred = 2.1
+		global stepy_pred = 0.25
+		global rangey_pred = $maxy_pred - $miny_pred
+		global markeradd_pred = $rangey_pred / 15
+		
+		global miny_random = -0.3
+		global maxy_random = 0.4
+		global stepy_random = 0.1
+		global rangey_random = $maxy_random - $miny_random
+		global markeradd_random = $rangey_random / 15
 		
 		drop if n < 10
 		
-		gen pred_main_lb = pred_main_ipw - 1.96 * sqrt(fixed_main_se_ipw^2 + random_main_se_ipw^2)
-		gen pred_main_ub = pred_main_ipw + 1.96 * sqrt(fixed_main_se_ipw^2 + random_main_se_ipw^2)
+		gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
+		gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
 		
-		gen pred_main_marker = pred_main_ub + 1.5
+		gen pred_main_marker = pred_main_ub + $markeradd_pred
+
+		gen random_main_lb = random_main - 1.96 * random_main_se
+		gen random_main_ub = random_main + 1.96 * random_main_se
 		
-		gen random_main_lb = random_main_ipw - 1.96 * random_main_se_ipw
-		gen random_main_ub = random_main_ipw + 1.96 * random_main_se_ipw
-		
-		gen random_main_marker = random_main_ub + 0.2
+		gen random_main_marker = random_main_ub + $markeradd_random
 			
-		egen pred_rank_rest = rank(pred_main_ipw)
-		egen random_rank_rest = rank(random_main_ipw)
+		egen pred_rank_rest = rank(pred_main)
+		egen random_rank_rest = rank(random_main)
 
 		ta strata
 		local maxlab = r(r)
 		
 		twoway ///
 			(rspike pred_main_ub pred_main_lb pred_rank_rest, lcolor(gs4)) ///
-			(scatter pred_main_ipw pred_rank_rest, mcolor(black) msymbol(smcircle)) ///
+			(scatter pred_main pred_rank_rest, mcolor(black) msymbol(smcircle)) ///
 			(scatter pred_main_marker pred_rank_rest, msymbol(i) mlabel(strata48) mlabangle(90) mlabposition(0) mlabtextstyle(color(black))), ///
-			ytitle("Stratum-specific predicted levels" "Kessler-6 score", size(*1.2)) ///
-			ylabel(0(4)20, angle(horizontal) labsize(*1)) ///
-			yline(0(4)20, lwidth(vthin) lcolor(gray)) ///
+			ytitle("Stratum-specific predicted levels" "Kessler-6 factor score", size(*1.2)) ///
+			ylabel($miny_pred($stepy_pred)$maxy_pred, angle(horizontal) labsize(*1)) ///
+			yline($miny_pred($stepy_pred)$maxy_pred, lwidth(vthin) lcolor(gray)) ///
 			xtitle("Stratum rank", size(*1.2)) ///
 			xlabel(1 10(10)`maxlab', labsize(*1)) ///
 			legend(off) ///
 			scheme(s1mono) ///
-			name(pred_k6_sim`i'_ipw_rest, replace) ///
+			name(pred_k6_sim`i'_rest, replace) ///
 			title("Scenario `i'") ///
 			xsize(10)
 			
-		graph save "estimates/mode/pred_k6_sim`i'_ipw_rest", replace 
+		graph save "$mode/pred_k6_sim`i'_rest", replace 
 		
 		ta strata
 		local maxlab = r(r)
 		
 		twoway ///
 			(rspike random_main_ub random_main_lb random_rank_rest, lcolor(gs4)) ///
-			(scatter random_main_ipw random_rank_rest, mcolor(black) msymbol(smcircle)) ///
+			(scatter random_main random_rank_rest, mcolor(black) msymbol(smcircle)) ///
 			(scatter random_main_marker random_rank_rest, msymbol(i) mlabel(strata48) mlabangle(90) mlabposition(0) mlabtextstyle(color(black))) ///
 			(rspike random_main_ub random_main_lb random_rank_rest if random_main_ub < 0 | random_main_lb > 0, lcolor(red)) ///
-			(scatter random_main_ipw random_rank_rest if random_main_ub < 0 | random_main_lb > 0, mcolor(red) msymbol(smcircle)) ///
+			(scatter random_main random_rank_rest if random_main_ub < 0 | random_main_lb > 0, mcolor(red) msymbol(smcircle)) ///
 			(scatter random_main_marker random_rank_rest if random_main_ub < 0 | random_main_lb > 0, msymbol(i) mlabel(strata48) mlabangle(90) mlabposition(0) mlabtextstyle(color(red))), ///
-			ytitle("Stratum-specific random effects" "Kessler-6 score", size(*1.2)) ///
-			ylabel(-2(0.5)2, angle(horizontal) labsize(*1)) ///
-			yline(-2(0.5)2, lwidth(vthin) lcolor(gray)) ///
+			ytitle("Stratum-specific random effects" "Kessler-6 factor score", size(*1.2)) ///
+			ylabel($miny_random($stepy_random)$maxy_random, angle(horizontal) labsize(*1)) ///
+			yline($miny_random($stepy_random)$maxy_random, lwidth(vthin) lcolor(gray)) ///
 			yline(0, lcolor(red)) ///
 			xtitle("Stratum rank", size(*1.2)) ///
 			xlabel(1 10(10)`maxlab', labsize(*1)) ///
 			legend(off) ///
 			scheme(s1mono) ///
-			name(random_k6_sim`i'_ipw_rest, replace) ///
+			name(random_k6_sim`i'_rest, replace) ///
 			title("Scenario `i'") ///
 			xsize(10)
 			
-		graph save "estimates/mode/random_k6_sim`i'_ipw_rest", replace
+		graph save "$mode/random_k6_sim`i'_rest", replace
 		
 }
 
@@ -275,21 +293,24 @@ putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
 	
 	foreach type in pred random {
 		
-		forvalues i = 1(1)6 {
-			graph use "estimates/mode/`type'_k6_sim`i'_ipw_rest"
-		}
-			
-		graph combine `type'_k6_sim1_ipw_rest `type'_k6_sim2_ipw_rest `type'_k6_sim3_ipw_rest `type'_k6_sim4_ipw_rest `type'_k6_sim5_ipw_rest `type'_k6_sim6_ipw_rest, ///
+		graph combine ///
+			"$mode/`type'_k6_sim1_rest" ///
+			"$mode/`type'_k6_sim2_rest" ///
+			"$mode/`type'_k6_sim3_rest" ///
+			"$mode/`type'_k6_sim4_rest" ///
+			"$mode/`type'_k6_sim5_rest" ///
+			"$mode/`type'_k6_sim6_rest" ///
+			, ///
 		rows(3) iscale(*0.6) colf xsize(6) ///
-		note("Only strata with 10+ observations are shown. Weighted results. In scenarios 1-3, a constant mode effect of 1-3 is added to the Kessler-6 score among in-person participants." ///
-		"In scenarios 4-6, the constant mode effect is further amplified among sexual minority participants, ethnic minority groups, and those who experienced childhood poverty by -0.5 x scenario magnitude (1-3)" ///
+		note("Only strata with 10+ observations are shown. Weighted results. In scenarios 1-3, a constant mode effect of 0.2 SD, 0.4 SD, or 0.6 SD is added to the Kessler-6 score among in-person participants." ///
+		"In scenarios 4-6, the constant mode effect is further amplified among sexual minority participants, ethnic minority groups, and those who experienced childhood poverty by 0.1 SD x scenario magnitude (1-3)" ///
 		, size(*0.5)) ///
-		name(comb_`type'_k6_sim_ipw_rest, replace)
+		name(comb_`type'_k6_sim_rest, replace)
 		
-		graph save "estimates/mode/comb_`type'_k6_sim_ipw_rest", replace
-		graph export "estimates/mode/comb_`type'_k6_sim_ipw_rest.png", replace width(1000)
-		graph export "estimates/mode/comb_`type'_k6_sim_ipw_rest.pdf", replace 
-		graph export "estimates/mode/comb_`type'_k6_sim_ipw_rest.svg", replace 
+		graph save "$mode/comb_`type'_k6_sim_rest", replace
+		graph export "$mode/comb_`type'_k6_sim_rest.png", replace width(1000)
+		graph export "$mode/comb_`type'_k6_sim_rest.pdf", replace 
+		graph export "$mode/comb_`type'_k6_sim_rest.svg", replace 
 		
 	}
 	
@@ -309,58 +330,58 @@ putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
 	
 	forvalues i = 1(1)6 {
 		
-		use Datasets/20260629_mcs_combined_strata_mode, clear
+		use "$datasets/mcs_combined_strata_mode", clear
 		
-		drop if strata48 == . & swemwbs_sr_23y == .
-
+		drop if strata48 == . & swemwbs_fscore == .
+		
 	
 	* Null / intercepts-only model
 		
-		meglm swemwbs_sr_23y_sim`i' [pweight = hovwt2] || strata48:
-			estimates save "estimates/mode/swemwbs_sim`i'_null_ipw", replace
+		meglm swemwbs_fscore_sim`i' [pweight = hovwt2] || strata48:
+			estimates save "$estimates/mode/swemwbs_sim`i'_null", replace
 			estat icc 
 			
-			predict pred_null_ipw, fitted // m1Am, includes fixed and random parts
+			predict pred_null, fitted // m1Am, includes fixed and random parts
 			
 		* Main effects model
 
-		meglm swemwbs_sr_23y_sim`i' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y [pweight = hovwt2] || strata48:, baselevels
-			estimates save "estimates/mode/swemwbs_sim`i'_main_ipw", replace
+		meglm swemwbs_fscore_sim`i' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y [pweight = hovwt2] || strata48:, baselevels
+			estimates save "$estimates/mode/swemwbs_sim`i'_main", replace
 			estat icc 
 			
-			predict pred_main_ipw, fitted // m1Bm, includes fixed and random parts
-			predict random_main_ipw, reffect reses(random_main_se_ipw) // m1Bu and m1Buse
+			predict pred_main, fitted // m1Bm, includes fixed and random parts
+			predict random_main, reffect reses(random_main_se) // m1Bu and m1Buse
 			
-			predict fixed_main_ipw, xb // fixed-portion linear prediction
-			predict fixed_main_se_ipw, stdp // m1Bxbse, SE for the fixed-portion linear prediction
+			predict fixed_main, xb // fixed-portion linear prediction
+			predict fixed_main_se, stdp // m1Bxbse, SE for the fixed-portion linear prediction
 			
 	**## Saving data
 		
 		compress
-		save "estimates/mode/swemwbs_sim`i'", replace
+		save "$mode/swemwbs_sim`i'", replace
 		
-		use "estimates/mode/swemwbs_sim`i'", clear
+		use "$mode/swemwbs_sim`i'", clear
 		
-		collapse (count) n = swemwbs_sr_23y_sim`i' ///
-			(mean) swemwbs_sr_23y_sim`i' ///
-			pred_null_ipw pred_main_ipw random_main_se_ipw random_main_ipw fixed_main_ipw fixed_main_se_ipw, ///
+		collapse (count) n = swemwbs_fscore_sim`i' ///
+			(mean) swemwbs_fscore_sim`i' ///
+			pred_null pred_main random_main_se random_main fixed_main fixed_main_se, ///
 			by(strata48 birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y)
 			
-		format %9.2f swemwbs pred* random* fixed*
+		format %9.2f swemwbs_fscore_sim`i' pred* random* fixed*
 		compress
-		save "estimates/mode/swemwbs_sim`i'_strata48", replace
+		save "$mode/swemwbs_sim`i'_strata48", replace
 		
 		
 	**## Tabulating results
 		
-		use "estimates/mode/swemwbs_sim`i'", clear
+		use "$mode/swemwbs_sim`i'", clear
 				
-		local rownumber = `i' + 7
+		local rownumber = `i' + 1
 	
 		putexcel A`rownumber' = "swemwbs"
 		putexcel B`rownumber' = "Scenario `i'"
 			
-		estimates use "estimates/mode/swemwbs_sim`i'_null_ipw"
+		estimates use "$mode/swemwbs_sim`i'_null"
 		estimates replay, baselevels
 		
 		putexcel C`rownumber' = `e(N)'
@@ -373,7 +394,7 @@ putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
 		putexcel G`rownumber' = sigma2_u_null 
 		
 		
-		estimates use "estimates/mode/swemwbs_sim`i'_main_ipw"
+		estimates use "$mode/swemwbs_sim`i'_main"
 		estimates replay, baselevels
 
 		mat coeffs = ///
@@ -401,66 +422,78 @@ putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
 		
 	**## Visualising results
 		
-		use "estimates/mode/swemwbs_sim`i'_strata48", clear
+		use "$mode/swemwbs_sim`i'_strata48", clear
+		
+		global miny_pred = -1
+		global maxy_pred = 1
+		global stepy_pred = 0.25
+		global rangey_pred = $maxy_pred - $miny_pred
+		global markeradd_pred = $rangey_pred / 15
+		
+		global miny_random = -0.3
+		global maxy_random = 0.4
+		global stepy_random = 0.1
+		global rangey_random = $maxy_random - $miny_random
+		global markeradd_random = $rangey_random / 15
 		
 		drop if n < 10
 		
-		gen pred_main_lb = pred_main_ipw - 1.96 * sqrt(fixed_main_se_ipw^2 + random_main_se_ipw^2)
-		gen pred_main_ub = pred_main_ipw + 1.96 * sqrt(fixed_main_se_ipw^2 + random_main_se_ipw^2)
+		gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
+		gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
 		
-		gen pred_main_marker = pred_main_ub + 1
+		gen pred_main_marker = pred_main_ub + $markeradd_pred
+
+		gen random_main_lb = random_main - 1.96 * random_main_se
+		gen random_main_ub = random_main + 1.96 * random_main_se
 		
-		gen random_main_lb = random_main_ipw - 1.96 * random_main_se_ipw
-		gen random_main_ub = random_main_ipw + 1.96 * random_main_se_ipw
-		
-		gen random_main_marker = random_main_ub + 0.2
+		gen random_main_marker = random_main_ub + $markeradd_random
 			
-		egen pred_rank_rest = rank(pred_main_ipw)
-		egen random_rank_rest = rank(random_main_ipw)
+		egen pred_rank_rest = rank(pred_main)
+		egen random_rank_rest = rank(random_main)
 
 		ta strata
 		local maxlab = r(r)
 		
 		twoway ///
 			(rspike pred_main_ub pred_main_lb pred_rank_rest, lcolor(gs4)) ///
-			(scatter pred_main_ipw pred_rank_rest, mcolor(black) msymbol(smcircle)) ///
+			(scatter pred_main pred_rank_rest, mcolor(black) msymbol(smcircle)) ///
 			(scatter pred_main_marker pred_rank_rest, msymbol(i) mlabel(strata48) mlabangle(90) mlabposition(0) mlabtextstyle(color(black))), ///
-			ytitle("Stratum-specific predicted levels" "SWEMWBS score", size(*1.2)) ///
-			ylabel(16(2)30, angle(horizontal) labsize(*1)) ///
-			yline(16(2)30, lwidth(vthin) lcolor(gray)) ///
+			ytitle("Stratum-specific predicted levels" "SWEMWBS factor score", size(*1.2)) ///
+			ylabel($miny_pred($stepy_pred)$maxy_pred, angle(horizontal) labsize(*1)) ///
+			yline($miny_pred($stepy_pred)$maxy_pred, lwidth(vthin) lcolor(gray)) ///
 			xtitle("Stratum rank", size(*1.2)) ///
 			xlabel(1 10(10)`maxlab', labsize(*1)) ///
 			legend(off) ///
 			scheme(s1mono) ///
-			name(pred_swemwbs_sim`i'_ipw_rest, replace) ///
-			xsize(10) ///
-			title("Scenario `i'")
+			name(pred_swemwbs_sim`i'_rest, replace) ///
+			title("Scenario `i'") ///
+			xsize(10)
 			
-		graph save "estimates/mode/pred_swemwbs_sim`i'_ipw_rest", replace 
+		graph save "$mode/pred_swemwbs_sim`i'_rest", replace 
 		
 		ta strata
 		local maxlab = r(r)
 		
 		twoway ///
 			(rspike random_main_ub random_main_lb random_rank_rest, lcolor(gs4)) ///
-			(scatter random_main_ipw random_rank_rest, mcolor(black) msymbol(smcircle)) ///
+			(scatter random_main random_rank_rest, mcolor(black) msymbol(smcircle)) ///
 			(scatter random_main_marker random_rank_rest, msymbol(i) mlabel(strata48) mlabangle(90) mlabposition(0) mlabtextstyle(color(black))) ///
 			(rspike random_main_ub random_main_lb random_rank_rest if random_main_ub < 0 | random_main_lb > 0, lcolor(red)) ///
-			(scatter random_main_ipw random_rank_rest if random_main_ub < 0 | random_main_lb > 0, mcolor(red) msymbol(smcircle)) ///
+			(scatter random_main random_rank_rest if random_main_ub < 0 | random_main_lb > 0, mcolor(red) msymbol(smcircle)) ///
 			(scatter random_main_marker random_rank_rest if random_main_ub < 0 | random_main_lb > 0, msymbol(i) mlabel(strata48) mlabangle(90) mlabposition(0) mlabtextstyle(color(red))), ///
-			ytitle("Stratum-specific random effects" "SWEMWBS score", size(*1.2)) ///
-			ylabel(-1.5(0.5)2, angle(horizontal) labsize(*1)) ///
-			yline(-1.5(0.5)2, lwidth(vthin) lcolor(gray)) ///
+			ytitle("Stratum-specific random effects" "SWEMWBS factor score", size(*1.2)) ///
+			ylabel($miny_random($stepy_random)$maxy_random, angle(horizontal) labsize(*1)) ///
+			yline($miny_random($stepy_random)$maxy_random, lwidth(vthin) lcolor(gray)) ///
 			yline(0, lcolor(red)) ///
 			xtitle("Stratum rank", size(*1.2)) ///
 			xlabel(1 10(10)`maxlab', labsize(*1)) ///
 			legend(off) ///
 			scheme(s1mono) ///
-			name(random_swemwbs_sim`i'_ipw_rest, replace) ///
-			xsize(10) ///
-			title("Scenario `i'")
+			name(random_swemwbs_sim`i'_rest, replace) ///
+			title("Scenario `i'") ///
+			xsize(10)
 			
-		graph save "estimates/mode/random_swemwbs_sim`i'_ipw_rest", replace
+		graph save "$mode/random_swemwbs_sim`i'_rest", replace
 		
 }
 
@@ -469,20 +502,23 @@ putexcel set "INTERSECT-YP Study 1 results.xlsx", modify sheet("20260629_mode")
 	
 	foreach type in pred random {
 		
-		forvalues i = 1(1)6 {
-			graph use "estimates/mode/`type'_swemwbs_sim`i'_ipw_rest"
-		}
-			
-		graph combine `type'_swemwbs_sim1_ipw_rest `type'_swemwbs_sim2_ipw_rest `type'_swemwbs_sim3_ipw_rest `type'_swemwbs_sim4_ipw_rest `type'_swemwbs_sim5_ipw_rest `type'_swemwbs_sim6_ipw_rest, ///
+		graph combine ///
+			"$mode/`type'_swemwbs_sim1_rest" ///
+			"$mode/`type'_swemwbs_sim2_rest" ///
+			"$mode/`type'_swemwbs_sim3_rest" ///
+			"$mode/`type'_swemwbs_sim4_rest" ///
+			"$mode/`type'_swemwbs_sim5_rest" ///
+			"$mode/`type'_swemwbs_sim6_rest" ///
+			, ///
 		rows(3) iscale(*0.6) colf xsize(6) ///
-		note("Only strata with 10+ observations are shown. Weighted results. In scenarios 1-3, a constant mode effect of 1-3 is subtracted to the SWEMWBS score among in-person participants." ///
-		"In scenarios 4-6, the constant mode effect is further amplified among sexual minority participants, ethnic minority groups, and those who experienced childhood poverty by -0.5 x scenario magnitude (1-3)" ///
+		note("Only strata with 10+ observations are shown. Weighted results. In scenarios 1-3, a constant mode effect of 0.2 SD, 0.4 SD, or 0.6 SD is subtracted to the SWEMWBS score among in-person participants." ///
+		"In scenarios 4-6, the constant mode effect is further amplified among sexual minority participants, ethnic minority groups, and those who experienced childhood poverty by -0.1 SD x scenario magnitude (1-3)" ///
 		, size(*0.5)) ///
-		name(comb_`type'_swemwbs_sim_ipw_rest, replace)
+		name(comb_`type'_swemwbs_sim_rest, replace)
 		
-		graph save "estimates/mode/comb_`type'_swemwbs_sim_ipw_rest", replace
-		graph export "estimates/mode/comb_`type'_swemwbs_sim_ipw_rest.png", replace width(1000)
-		graph export "estimates/mode/comb_`type'_swemwbs_sim_ipw_rest.pdf", replace 
-		graph export "estimates/mode/comb_`type'_swemwbs_sim_ipw_rest.svg", replace 
+		graph save "$mode/comb_`type'_swemwbs_sim_rest", replace
+		graph export "$mode/comb_`type'_swemwbs_sim_rest.png", replace width(1000)
+		graph export "$mode/comb_`type'_swemwbs_sim_rest.pdf", replace 
+		graph export "$mode/comb_`type'_swemwbs_sim_rest.svg", replace 
 
 	}

@@ -1,37 +1,14 @@
-kaboom
+kaboom // added to prevent running the whole script when using the run command shortcut
 
-**# Kessler-6 - continuous - all participants
+**# Setup
 
-	**## Unweighted
-	
-	use "estimates/k6_strata48", clear
-	
-	* Predicted levels
-	
-	gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	* Random / intersectional effects
-		
-	gen random_main_lb = random_main - 1.96 * random_main_se
-	gen random_main_ub = random_main + 1.96 * random_main_se
-	
-	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
-	
-	gen outcome = "1 Kessler-6"
-	gen type = "1 Main"
-	gen weighted = 0
-	
-	save 20260727_maihda_predictions, replace
-		
-	
-	**## Weighted
-	
-	use "estimates/k6_strata48", clear
-	
-	foreach var in pred_main random_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
+	global estimates "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Estimates" // folder where results from models are saved
+
+	tempfile maihda_predictions
+
+**# Kessler-6 - partially invariant factor scores - all participants
+
+	use "$estimates/k6_strata48", clear
 		
 	* Predicted levels
 	
@@ -47,11 +24,8 @@ kaboom
 	
 	gen outcome = "1 Kessler-6"
 	gen type = "1 Main"
-	gen weighted = 1
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-
+	save `maihda_predictions'
 		
 
 **********************************************************************
@@ -59,12 +33,10 @@ kaboom
 **********************************************************************
 
 	
-**# Kessler-6 - continuous - excluding mop-up survey // SENS CHECK
+**# Kessler-6 - partially invariant factor scores - excluding mop-up survey
 	
-	**## Unweighted
+	use "$estimates/nomopup/k6_nomopup_strata48", clear
 	
-	use "estimates/nomopup/k6_strata48_nomopup", clear
-
 	* Predicted levels
 	
 	gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
@@ -79,38 +51,9 @@ kaboom
 	
 	gen outcome = "1 Kessler-6"
 	gen type = "2 No mop-up"
-	gen weighted = 0
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-
-	
-	**## Weighted
-	
-	use "estimates/nomopup/k6_strata48_nomopup", clear
-	
-	foreach var in pred_main random_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
-		
-	* Predicted levels
-	
-	gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	* Random / intersectional effects
-		
-	gen random_main_lb = random_main - 1.96 * random_main_se
-	gen random_main_ub = random_main + 1.96 * random_main_se
-	
-	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
-	
-	gen outcome = "1 Kessler-6"
-	gen type = "2 No mop-up"
-	gen weighted = 1
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 	
 	
 **********************************************************************
@@ -118,11 +61,9 @@ kaboom
 **********************************************************************
 
 
-**# Kessler-6 - partially invariant factor scores 
+**# Kessler-6 - sum scores 
 	
-	**## Unweighted
-	
-	use "estimates/fscores/k6_fscore_strata48", clear
+	use "$estimates/sumscores/k6_sumscore_strata48", clear
 	
 	* Predicted levels
 	
@@ -137,39 +78,10 @@ kaboom
 	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
 	
 	gen outcome = "1 Kessler-6"
-	gen type = "3 Factor scores"
-	gen weighted = 0
+	gen type = "3 Sum scores"
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-
-	
-	**## Weighted
-	
-	use "estimates/fscores/k6_fscore_strata48", clear
-	
-	foreach var in pred_main random_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
-		
-	* Predicted levels
-	
-	gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	* Random / intersectional effects
-		
-	gen random_main_lb = random_main - 1.96 * random_main_se
-	gen random_main_ub = random_main + 1.96 * random_main_se
-	
-	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
-	
-	gen outcome = "1 Kessler-6"
-	gen type = "3 Factor scores"
-	gen weighted = 1
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 		
 		
 **********************************************************************
@@ -177,49 +89,9 @@ kaboom
 **********************************************************************
 
 
-**# Kessler-6 - caseness (13+) - all participants
+**# Caseness (Kessler-6 = 13+) - all participants
 
-	**## Unweighted
-	
-	use "estimates/caseness_strata48", clear
-
-	* Predicted levels
-	
-	replace pred_main = 100 * invlogit(pred_main)
-	
-	gen pred_main_lb = 100 * invlogit(fixed_main + random_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	gen pred_main_ub = 100 * invlogit(fixed_main + random_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	
-	* Random / intersectional effects
-	
-	expand 1000
-	gen pred_main_se = sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	set seed 24601
-	gen pred_main_prob_sim = 100 * invlogit(fixed_main + random_main + rnormal(0, pred_main_se))
-	gen fixed_main_prob = 100 * invlogit(fixed_main)
-	replace random_main = pred_main_prob_sim - fixed_main_prob
-	
-	bysort strata48: egen random_main_lb = pctile(random_main), p(2.5)
-	bysort strata48: egen random_main_ub = pctile(random_main), p(97.5)
-	
-	collapse (mean) birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub, by(strata48)
-	
-	gen outcome = "2 Caseness"
-	gen type = "1 Main"
-	gen weighted = 0
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-		
-	
-	**## Weighted
-	
-	use "estimates/caseness_strata48", clear
-	
-	foreach var in fixed_main random_main pred_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
+	use "$estimates/caseness_strata48", clear
 	
 	* Predicted levels
 	
@@ -245,10 +117,9 @@ kaboom
 	
 	gen outcome = "2 Caseness"
 	gen type = "1 Main"
-	gen weighted = 1
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 	
 	
 **********************************************************************
@@ -256,11 +127,9 @@ kaboom
 **********************************************************************
 		
 	
-**# Kessler-6 - caseness (13+) - excluding mop-up survey // SENS CHECK
+**# Caseness (Kessler-6 = 13+) - excluding mop-up survey
 	
-	**## Unweighted
-	
-	use "estimates/nomopup/caseness_strata48_nomopup", clear
+	use "$estimates/nomopup/caseness_nomopup_strata48", clear
 	
 	* Predicted levels
 	
@@ -286,48 +155,9 @@ kaboom
 	
 	gen outcome = "2 Caseness"
 	gen type = "2 No mop-up"
-	gen weighted = 0
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-		
-	
-	**## Weighted
-	
-	use "estimates/nomopup/caseness_strata48_nomopup", clear
-	
-	foreach var in fixed_main random_main pred_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
-	
-	* Predicted levels
-	
-	replace pred_main = 100 * invlogit(pred_main)
-	
-	gen pred_main_lb = 100 * invlogit(fixed_main + random_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	gen pred_main_ub = 100 * invlogit(fixed_main + random_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	
-	* Random / intersectional effects
-	
-	expand 1000
-	gen pred_main_se = sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	set seed 24601
-	gen pred_main_prob_sim = 100 * invlogit(fixed_main + random_main + rnormal(0, pred_main_se))
-	gen fixed_main_prob = 100 * invlogit(fixed_main)
-	replace random_main = pred_main_prob_sim - fixed_main_prob
-	
-	bysort strata48: egen random_main_lb = pctile(random_main), p(2.5)
-	bysort strata48: egen random_main_ub = pctile(random_main), p(97.5)
-	
-	collapse (mean) birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub, by(strata48)
-	
-	gen outcome = "2 Caseness"
-	gen type = "2 No mop-up"
-	gen weighted = 1
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 	
 	
 **********************************************************************
@@ -335,11 +165,9 @@ kaboom
 **********************************************************************
 	
 	
-**# SWEMWBS - continuous - does not include mop-up survey by design
+**# SWEMWBS - partially invariant factor scores
 
-	**## Unweighted
-	
-	use "estimates/swemwbs_strata48", clear
+	use "$estimates/swemwbs_strata48", clear	
 	
 	* Predicted levels
 	
@@ -355,38 +183,9 @@ kaboom
 	
 	gen outcome = "3 SWEMWBS"
 	gen type = "1 Main"
-	gen weighted = 0
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-
-	
-	**## Weighted
-	
-	use "estimates/swemwbs_strata48", clear	
-	
-	foreach var in pred_main random_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
-		
-	* Predicted levels
-	
-	gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	* Random / intersectional effects
-		
-	gen random_main_lb = random_main - 1.96 * random_main_se
-	gen random_main_ub = random_main + 1.96 * random_main_se
-	
-	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
-	
-	gen outcome = "3 SWEMWBS"
-	gen type = "1 Main"
-	gen weighted = 1
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 	
 
 **********************************************************************
@@ -394,11 +193,9 @@ kaboom
 **********************************************************************
 
 
-**# SWEMWBS - partially invariant factor scores - does not include mop-up survey by design
+**# SWEMWBS - sum scores
 
-	**## Unweighted
-	
-	use "estimates/fscores/swemwbs_fscore_strata48", clear
+	use "$estimates/sumscores/swemwbs_sumscore_strata48", clear
 	
 	* Predicted levels
 	
@@ -413,39 +210,10 @@ kaboom
 	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
 	
 	gen outcome = "3 SWEMWBS"
-	gen type = "3 Factor scores"
-	gen weighted = 0
+	gen type = "3 Sum scores"
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-
-	
-	**## Weighted
-	
-	use "estimates/fscores/swemwbs_fscore_strata48", clear
-	
-	foreach var in pred_main random_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
-		
-	* Predicted levels
-	
-	gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	* Random / intersectional effects
-		
-	gen random_main_lb = random_main - 1.96 * random_main_se
-	gen random_main_ub = random_main + 1.96 * random_main_se
-	
-	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
-	
-	gen outcome = "3 SWEMWBS"
-	gen type = "3 Factor scores"
-	gen weighted = 1
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 		
 		
 **********************************************************************
@@ -453,11 +221,9 @@ kaboom
 **********************************************************************
 
 
-**# Self-harm (any) - excludes mop-up survey by design
+**# Self-harm (any) 
 
-	**## Unweighted
-	
-	use "estimates/selfharm_strata48", clear
+	use "$estimates/selfharm_strata48", clear
 	
 	* Predicted levels
 	
@@ -483,48 +249,9 @@ kaboom
 	
 	gen outcome = "4 Self-harm"
 	gen type = "1 Main"
-	gen weighted = 0
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-		
-	
-	**## Weighted
-	
-	use "estimates/selfharm_strata48", clear
-	
-	foreach var in fixed_main random_main pred_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
-	
-	* Predicted levels
-	
-	replace pred_main = 100 * invlogit(pred_main)
-	
-	gen pred_main_lb = 100 * invlogit(fixed_main + random_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	gen pred_main_ub = 100 * invlogit(fixed_main + random_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	
-	* Random / intersectional effects
-	
-	expand 1000
-	gen pred_main_se = sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	set seed 24601
-	gen pred_main_prob_sim = 100 * invlogit(fixed_main + random_main + rnormal(0, pred_main_se))
-	gen fixed_main_prob = 100 * invlogit(fixed_main)
-	replace random_main = pred_main_prob_sim - fixed_main_prob
-	
-	bysort strata48: egen random_main_lb = pctile(random_main), p(2.5)
-	bysort strata48: egen random_main_ub = pctile(random_main), p(97.5)
-	
-	collapse (mean) birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub, by(strata48)
-	
-	gen outcome = "4 Self-harm"
-	gen type = "1 Main"
-	gen weighted = 1
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 	
 	
 **********************************************************************
@@ -532,11 +259,9 @@ kaboom
 **********************************************************************
 
 
-**# Self-harm - count - mepoisson
+**# Self-harm - count - Poisson
 
-	**## Unweighted
-
-	use "estimates/selfharm_cont/selfharm_poisson_strata48", clear
+	use "$estimates/selfharm_cont/selfharm_poisson_strata48", clear
 	
 	* Predicted levels
 	
@@ -562,48 +287,9 @@ kaboom
 	
 	gen outcome = "4 Self-harm"
 	gen type = "4a Count, Poisson"
-	gen weighted = 0
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-	
-		
-	**## Weighted
-	
-	use "estimates/selfharm_cont/selfharm_poisson_strata48", clear
-	
-	foreach var in fixed_main random_main pred_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
-	
-	* Predicted levels
-	
-	replace pred_main = exp(pred_main)
-	
-	gen pred_main_lb = exp(fixed_main + random_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	gen pred_main_ub = exp(fixed_main + random_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	
-	* Random / intersectional effects // using similar approach as Evans et al 2024 for binary outcomes
-	
-	expand 1000
-	gen pred_main_se = sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	set seed 24601
-	gen pred_main_mean_sim = exp(fixed_main + random_main + rnormal(0, pred_main_se))
-	gen fixed_main_mean = exp(fixed_main)
-	replace random_main = pred_main_mean_sim - fixed_main_mean
-	
-	bysort strata48: egen random_main_lb = pctile(random_main), p(2.5)
-	bysort strata48: egen random_main_ub = pctile(random_main), p(97.5)
-	
-	collapse (mean) birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub, by(strata48)	
-	
-	gen outcome = "4 Self-harm"
-	gen type = "4a Count, Poisson"
-	gen weighted = 1
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 
 
 **********************************************************************
@@ -611,50 +297,9 @@ kaboom
 **********************************************************************
 
 
-**# Self-harm - count - negative binomial
+**# Self-harm - count - Negative Binomial
 
-	
-	**## Unweighted
-	
-	use "estimates/selfharm_cont/selfharm_nbreg_strata48", clear
-
-	* Predicted levels
-	
-	replace pred_main = exp(pred_main)
-	
-	gen pred_main_lb = exp(fixed_main + random_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	gen pred_main_ub = exp(fixed_main + random_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	
-	* Random / intersectional effects // using similar approach as Evans et al 2024 for binary outcomes
-	
-	expand 1000
-	gen pred_main_se = sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	set seed 24601
-	gen pred_main_mean_sim = exp(fixed_main + random_main + rnormal(0, pred_main_se))
-	gen fixed_main_mean = exp(fixed_main)
-	replace random_main = pred_main_mean_sim - fixed_main_mean
-	
-	bysort strata48: egen random_main_lb = pctile(random_main), p(2.5)
-	bysort strata48: egen random_main_ub = pctile(random_main), p(97.5)
-	
-	collapse (mean) birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub, by(strata48)	
-	
-	gen outcome = "4 Self-harm"
-	gen type = "4b Count, Negative binomial"
-	gen weighted = 0
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-	
-		
-	**## Weighted
-	
-	use "estimates/selfharm_cont/selfharm_nbreg_strata48", clear
-	
-	foreach var in fixed_main random_main pred_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
+	use "$estimates/selfharm_cont/selfharm_nbreg_strata48", clear
 	
 	* Predicted levels
 	
@@ -680,10 +325,9 @@ kaboom
 	
 	gen outcome = "4 Self-harm"
 	gen type = "4b Count, Negative binomial"
-	gen weighted = 1
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace 
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 
 
 **********************************************************************
@@ -691,11 +335,9 @@ kaboom
 **********************************************************************
 		
 	
-**# Suicide (ever) - excludes mop-up survey by design, extend to IPW with/when approach for CIs
+**# Lifetime suicide attempts
 
-	**## Unweighted
-	
-	use "estimates/suicide_strata48", clear
+	use "$estimates/suicide_strata48", clear	
 	
 	* Predicted levels
 	
@@ -721,48 +363,9 @@ kaboom
 	
 	gen outcome = "5 Suicide"
 	gen type = "1 Main"
-	gen weighted = 0
 	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
-		
-	
-	**## Weighted
-	
-	use "estimates/suicide_strata48", clear	
-	
-	foreach var in fixed_main random_main pred_main fixed_main_se random_main_se {
-		replace `var' = `var'_ipw
-	}
-	
-	* Predicted levels
-	
-	replace pred_main = 100 * invlogit(pred_main)
-	
-	gen pred_main_lb = 100 * invlogit(fixed_main + random_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	gen pred_main_ub = 100 * invlogit(fixed_main + random_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2))
-	
-	* Random / intersectional effects
-	
-	expand 1000
-	gen pred_main_se = sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	set seed 24601
-	gen pred_main_prob_sim = 100 * invlogit(fixed_main + random_main + rnormal(0, pred_main_se))
-	gen fixed_main_prob = 100 * invlogit(fixed_main)
-	replace random_main = pred_main_prob_sim - fixed_main_prob
-	
-	bysort strata48: egen random_main_lb = pctile(random_main), p(2.5)
-	bysort strata48: egen random_main_ub = pctile(random_main), p(97.5)
-	
-	collapse (mean) birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub, by(strata48)
-	
-	gen outcome = "5 Suicide"
-	gen type = "1 Main"
-	gen weighted = 1
-	
-	append using 20260727_maihda_predictions
-	save 20260727_maihda_predictions, replace
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
 		
 		
 **********************************************************************
@@ -771,13 +374,14 @@ kaboom
 
 **# Managing full prediction table
 
-	use 20260727_maihda_predictions, clear
+	use `maihda_predictions', clear
+	sort outcome type strata48
 	
 	* Create ranking variables
 	
 	foreach type in pred random {
-		bysort outcome type weighted: egen `type'_rank_full = rank(`type'_main)
-		bysort outcome type weighted: egen `type'_rank = rank(`type'_main) if n >= 10
+		bysort outcome type: egen `type'_rank_full = rank(`type'_main)
+		bysort outcome type: egen `type'_rank = rank(`type'_main) if n >= 10
 	}
 	
 
@@ -785,39 +389,19 @@ kaboom
 		replace `var' = . if n < 10
 	} 
 	
-	gsort -weighted +type +outcome +strata48
-	save 20260727_maihda_predictions_supptable, replace
-
-
-**# Creating league tables 
-
-	* ONS compliant (?) with full ranks
+	gsort +type +outcome +strata48
 	
-	use 20260727_maihda_predictions, clear
-	
-	keep if inrange(pred_rank_full,1,5) | inrange(pred_rank_full,43,47)
-
-	recode pred_rank_full (1 = 47) (2 = 46) (3 = 45) (4 = 44) (5 = 43) (43 = 5) (44 = 4) (45 = 3) (46 = 2) (47 = 1) if outcome == "3 SWEMWBS" 
-	keep if type == "1 Main" & weighted
-	replace strata48 = . if n < 10
-	keep strata48 n pred_main* pred_rank_full outcome 
-	encode outcome, gen(outcome_num)
-	drop outcome
-
-	reshape wide strata n pred_main pred_main_lb pred_main_ub, i(pred_rank_full) j(outcome_num)
-	browse pred_rank strata* 
-	
-	
-	* ONS compliant with reduced ranks
-	
-	use 20260727_maihda_predictions, clear
-
-	keep if inrange(pred_rank,1,5) | inrange(pred_rank,28,32)
-	recode pred_rank (1 = 32) (2 = 31) (3 = 30) (4 = 29) (5 = 28) (28 = 5) (29 = 4) (30 = 3) (31 = 2) (32 = 1) if outcome == "3 SWEMWBS"
-	keep if type == "1 Main" & weighted
-	keep strata48 pred_main* pred_rank outcome 
-	encode outcome, gen(outcome_num)
-	drop outcome
-
-	reshape wide strata pred_main pred_main_lb pred_main_ub, i(pred_rank) j(outcome_num)
-	browse pred_rank strata* 
+	format pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub %9.2f
+		
+	rename ///
+		(strata48 birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub pred_rank_full pred_rank random_rank_full random_rank) ///
+		(strata birth_sex ethnicity sexual_identity childhood_poverty predicted_estimate predicted_lb predicted_ub random_estimate random_lb random_ub predicted_rank_full predicted_rank_restricted random_rank_full random_rank_restricted)
+		
+	order ///
+		strata birth_sex ethnicity sexual_identity childhood_poverty n ///
+		outcome type ///
+		predicted_estimate predicted_lb predicted_ub predicted_rank_full predicted_rank_restricted ///
+		random_estimate random_lb random_ub random_rank_full random_rank_restricted
+		
+	save "$estimates/maihda_predictions_supptable", replace
+	export excel using "$estimates/maihda_predictions_supptable.xlsx", firstrow(variables) replace

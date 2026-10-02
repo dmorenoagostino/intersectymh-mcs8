@@ -1,262 +1,226 @@
-kaboom
+kaboom // added to prevent running the whole script when using the run command shortcut
 
 **# Setup
 
-	clear all
-	set more off
+	global mplus "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Mplus" // folder with Mplus results
+	
+	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder including datasets for analyses
+	
+	global estimates "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Estimates" // folder where results from models are saved
+	
+	* Create subfolders for sensitivity checks
+		
+		cap mkdir "$estimates/nomopup"
+		cap mkdir "$estimates/sumscores"
+		cap mkdir "$estimates/selfharm_cont"
+	
 
-	global DATA		"Datasets/20260629_mcs_combined_strata"
-	global COVARS	"i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y"
-	global STRATA	"strata48"
-	global WT		"hovwt2"
-	global BYVARS	"$STRATA birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y"
+**# Import partially invariant factor scores 
 
-	cap mkdir "estimates"
-	cap mkdir "estimates/nomopup"
-	cap mkdir "estimates/fscores"
-	cap mkdir "estimates/selfharm_cont"
+	* Kessler-6
 
+		import delimited ///
+			"$mplus\datasets/k6_fscores", /// 
+			delimiter(space, collapse) numericcols(_all) clear
+
+		keep v8 v11 // columns corresponding to the predicted factor scores and ID
+		rename (v8 v11) (k6_fscore MCSIDCNUM_link)
+		sort MCSIDCNUM_link
+
+		tempfile k6_fscore
+		save `k6_fscore'
+
+	* SWEMWBS
+	
+		import delimited ///
+			"$mplus\datasets/swemwbs_fscores", ///
+			delimiter(space, collapse) numericcols(_all) clear
+
+		keep v9 v12
+		rename (v9 v12) (swemwbs_fscore MCSIDCNUM_link)
+		sort MCSIDCNUM_link
+
+		tempfile swemwbs_fscore
+		save `swemwbs_fscore'
+		
+	* Merge with main dataset
+	
+		use "$datasets/mcs_combined_strata", clear
+		merge 1:1 MCSIDCNUM_link using `k6_fscore', nogen
+		merge 1:1 MCSIDCNUM_link using `swemwbs_fscore', nogen
+		
+		replace k6_fscore = . if kessler_sr_23y == .
+		replace swemwbs_fscore = . if swemwbs_sr_23y == .
+		
+		save "$datasets/mcs_combined_strata_fscores", replace
+
+		
+**# Setup for reusable programme
+		
+	global data 	"$datasets/mcs_combined_strata_fscores" // dataset to use in analyses
+	global covars 	"i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y" // variables defining intersectional strata
+	global strata 	"strata48" // variable identifying intersectional strata
+	global weight	"hovwt2" // variable identifying weights	
+	global byvars	"$strata birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y" // variables used to collapse
+	
+	
 **# Reusable programme
 
 capture program drop run_maihda_models
 program define run_maihda_models
 
-    syntax, OUTCOME(name) SAMPLEVAR(name) FAMILY(string) STEM(string) OUTDIR(string) ///
-        [SAMPLEIF(string asis) MERGEUSING(string)]
+	syntax, ///
+		OUTCOME(name) /// outcome variable
+		FAMILY(string) /// link function to use depending on outcome
+		STEM(string) /// stem for the generated files
+		OUTDIR(string) /// directory to save output
+		[SAMPLEIF(string asis)]
 
-    use "$DATA", clear
+	use "$data", clear
 
     * Base analytic sample
-    keep if $STRATA != . & `samplevar' != .
+	keep if $strata != . & `outcome' != . // `samplevar' != .
 
-    * Optional sample restriction, e.g. excluding mop-up
-    if `"`sampleif'"' != "" {
-        keep if `sampleif'
-    }
+	* Optional sample restriction, e.g. excluding mop-up
+	if `"`sampleif'"' != "" {
+		keep if `sampleif'
+	}
 
-    * Optional merge, e.g. for Mplus factor scores
-    if `"`mergeusing'"' != "" {
-        merge 1:1 MCSIDCNUM_link using `"`mergeusing'"', nogen keep(3)
-        keep if `outcome' != .
-    }
+	**## Model family-specific commands
 
-    **## Model family-specific commands
+	if "`family'" == "continuous" {
 
-    if "`family'" == "continuous" {
+		* Weighted null model
+		meglm `outcome' [pweight = $weight] || $strata:
+		estimates save "`outdir'/`stem'_null", replace
+		predict pred_null, fitted
 
-        * Unweighted null model
-        mixed `outcome' || $STRATA:
-        estimates save "`outdir'/`stem'_null", replace
-        predict pred_null, fitted
+		* Weighted main-effects model
+		meglm `outcome' $covars [pweight = $weight] || $strata:, baselevels
+		estimates save "`outdir'/`stem'_main", replace
+		predict pred_main, fitted
+		predict random_main, reffects reses(random_main_se)
+		predict fixed_main, xb
+		predict fixed_main_se, stdp
 
-        * Unweighted main-effects model
-        mixed `outcome' $COVARS || $STRATA:, baselevels
-        estimates save "`outdir'/`stem'_main", replace
-        predict pred_main, fitted
-        predict random_main, reffect reses(random_main_se)
-        predict fixed_main, xb
-        predict fixed_main_se, stdp
+		local collapse_vars ///
+			pred_null ///
+			pred_main random_main random_main_se fixed_main fixed_main_se
+	}
 
-        * Weighted null model
-        meglm `outcome' [pweight = $WT] || $STRATA:
-        estimates save "`outdir'/`stem'_null_ipw", replace
-        predict pred_null_ipw, fitted
+	else if "`family'" == "binary" {
 
-        * Weighted main-effects model
-        meglm `outcome' $COVARS [pweight = $WT] || $STRATA:, baselevels
-        estimates save "`outdir'/`stem'_main_ipw", replace
-        predict pred_main_ipw, fitted
-        predict random_main_ipw, reffect reses(random_main_se_ipw)
-        predict fixed_main_ipw, xb
-        predict fixed_main_se_ipw, stdp
+		* Weighted null model
+		melogit `outcome' [pweight = $weight] || $strata:, or baselevels
+		estimates save "`outdir'/`stem'_null", replace
+		predict pred_null, eta
+		predict fixed_null, xb
 
-        local collapse_vars ///
-            pred_null ///
-            pred_main random_main random_main_se fixed_main fixed_main_se ///
-            pred_null_ipw ///
-            pred_main_ipw random_main_ipw random_main_se_ipw fixed_main_ipw fixed_main_se_ipw
-    }
+		* Weighted main-effects model
+		melogit `outcome' $covars [pweight = $weight] || $strata:, or baselevels
+		estimates save "`outdir'/`stem'_main", replace
+		predict pred_main, fitted
+		predict random_main, reffects reses(random_main_se)
+		predict fixed_main, xb
+		predict fixed_main_se, stdp
 
-    else if "`family'" == "binary" {
-
-        * Unweighted null model
-        melogit `outcome' || $STRATA:, or baselevels
-        estimates save "`outdir'/`stem'_null", replace
-        predict pred_null, eta
-        predict fixed_null, xb
-
-        * Unweighted main-effects model
-        melogit `outcome' $COVARS || $STRATA:, or baselevels
-        estimates save "`outdir'/`stem'_main", replace
-        predict pred_main, fitted
-        predict random_main, reffect reses(random_main_se)
-        predict fixed_main, xb
-        predict fixed_main_se, stdp
-
-        * Weighted null model
-        melogit `outcome' [pweight = $WT] || $STRATA:, or baselevels
-        estimates save "`outdir'/`stem'_null_ipw", replace
-        predict pred_null_ipw, eta
-        predict fixed_null_ipw, xb
-
-        * Weighted main-effects model
-        melogit `outcome' $COVARS [pweight = $WT] || $STRATA:, or baselevels
-        estimates save "`outdir'/`stem'_main_ipw", replace
-        predict pred_main_ipw, fitted
-        predict random_main_ipw, reffect reses(random_main_se_ipw)
-        predict fixed_main_ipw, xb
-        predict fixed_main_se_ipw, stdp
-
-        local collapse_vars ///
-            pred_null fixed_null ///
-            pred_main random_main random_main_se fixed_main fixed_main_se ///
-            pred_null_ipw fixed_null_ipw ///
-            pred_main_ipw random_main_ipw random_main_se_ipw fixed_main_ipw fixed_main_se_ipw
-    }
+		local collapse_vars ///
+			pred_null fixed_null ///
+			pred_main random_main random_main_se fixed_main fixed_main_se
+	}
 	
 	else if "`family'" == "poisson" {
 
-        * Unweighted null model
-        mepoisson `outcome' || $STRATA:, irr baselevels
-        estimates save "`outdir'/`stem'_poisson_null", replace
-        predict pred_null, eta
-        predict fixed_null, xb
+		* Weighted null model
+		mepoisson `outcome' [pweight = $weight] || $strata:, irr baselevels
+		estimates save "`outdir'/`stem'_null", replace
+		predict pred_null, eta
+		predict fixed_null, xb
 
-        * Unweighted main-effects model
-        mepoisson `outcome' $COVARS || $STRATA:, irr baselevels
-        estimates save "`outdir'/`stem'_poisson_main", replace
-        predict pred_main, fitted
-        predict random_main, reffect reses(random_main_se)
-        predict fixed_main, xb
-        predict fixed_main_se, stdp
+		* Weighted main-effects model
+		mepoisson `outcome' $covars [pweight = $weight] || $strata:, irr baselevels
+		estimates save "`outdir'/`stem'_main", replace
+		predict pred_main, fitted
+		predict random_main, reffects reses(random_main_se)
+		predict fixed_main, xb
+		predict fixed_main_se, stdp
 
-        * Weighted null model
-        mepoisson `outcome' [pweight = $WT] || $STRATA:, irr baselevels
-        estimates save "`outdir'/`stem'_poisson_null_ipw", replace
-        predict pred_null_ipw, eta
-        predict fixed_null_ipw, xb
-
-        * Weighted main-effects model
-        mepoisson `outcome' $COVARS [pweight = $WT] || $STRATA:, irr baselevels
-        estimates save "`outdir'/`stem'_poisson_main_ipw", replace
-        predict pred_main_ipw, fitted
-        predict random_main_ipw, reffect reses(random_main_se_ipw)
-        predict fixed_main_ipw, xb
-        predict fixed_main_se_ipw, stdp
-
-        local collapse_vars ///
-            pred_null fixed_null ///
-            pred_main random_main random_main_se fixed_main fixed_main_se ///
-            pred_null_ipw fixed_null_ipw ///
-            pred_main_ipw random_main_ipw random_main_se_ipw fixed_main_ipw fixed_main_se_ipw
-    }
+		local collapse_vars ///
+			pred_null fixed_null ///
+			pred_main random_main random_main_se fixed_main fixed_main_se
+	}
 	
 	else if "`family'" == "nbreg" {
 
-        * Unweighted null model
-        menbreg `outcome' || $STRATA:, irr baselevels
-        estimates save "`outdir'/`stem'_poisson_null", replace
-        predict pred_null, eta
-        predict fixed_null, xb
+		* Weighted null model
+		menbreg `outcome' [pweight = $weight] || $strata:, irr baselevels
+		estimates save "`outdir'/`stem'_null", replace
+		predict pred_null, eta
+		predict fixed_null, xb
 
-        * Unweighted main-effects model
-        menbreg `outcome' $COVARS || $STRATA:, irr baselevels
-        estimates save "`outdir'/`stem'_poisson_main", replace
-        predict pred_main, fitted
-        predict random_main, reffect reses(random_main_se)
-        predict fixed_main, xb
-        predict fixed_main_se, stdp
+		* Weighted main-effects model
+		menbreg `outcome' $covars [pweight = $weight] || $strata:, irr baselevels
+		estimates save "`outdir'/`stem'_main", replace
+		predict pred_main, fitted
+		predict random_main, reffects reses(random_main_se)
+		predict fixed_main, xb
+		predict fixed_main_se, stdp
 
-        * Weighted null model
-        menbreg `outcome' [pweight = $WT] || $STRATA:, irr baselevels
-        estimates save "`outdir'/`stem'_poisson_null_ipw", replace
-        predict pred_null_ipw, eta
-        predict fixed_null_ipw, xb
+		local collapse_vars ///
+			pred_null fixed_null ///
+			pred_main random_main random_main_se fixed_main fixed_main_se
+	}
 
-        * Weighted main-effects model
-        menbreg `outcome' $COVARS [pweight = $WT] || $STRATA:, irr baselevels
-        estimates save "`outdir'/`stem'_poisson_main_ipw", replace
-        predict pred_main_ipw, fitted
-        predict random_main_ipw, reffect reses(random_main_se_ipw)
-        predict fixed_main_ipw, xb
-        predict fixed_main_se_ipw, stdp
-
-        local collapse_vars ///
-            pred_null fixed_null ///
-            pred_main random_main random_main_se fixed_main fixed_main_se ///
-            pred_null_ipw fixed_null_ipw ///
-            pred_main_ipw random_main_ipw random_main_se_ipw fixed_main_ipw fixed_main_se_ipw
-    }
-
-    else {
-        di as error "family() must be either continuous, binary, poisson, or nbreg"
-        exit 198
-    }
+	else {
+		di as error "family() must be either continuous, binary, poisson, or nbreg"
+		exit 198
+	}
 
     **## Save individual-level predictions
-    
-    compress
-    save "`outdir'/`stem'", replace
 
-    **## Collapse to strata-level file
-    
-    collapse ///
-        (count) n = `outcome' ///
-        (mean)  `outcome' `collapse_vars', ///
-        by($BYVARS)
+	compress
+	save "`outdir'/`stem'", replace
 
-    format %9.2f `outcome' pred* random* fixed*
-    compress
-    save "`outdir'/`stem'_strata48", replace
+	**## Collapse to strata-level file
+
+	collapse ///
+		(count) n = `outcome' ///
+		(mean)  `outcome' `collapse_vars', ///
+		by($byvars)
+
+	format %9.2f `outcome' pred* random* fixed*
+	compress
+	save "`outdir'/`stem'_$strata", replace
 
 end
 
 
 **# Kessler-6
 
-	**## Main analyses
-
-	run_maihda_models, ///
-		outcome(kessler_sr_23y) ///
-		samplevar(kessler_sr_23y) ///
-		family(continuous) ///
-		stem(k6) ///
-		outdir("estimates")
-
-	**## Excluding mop-up survey
-
-	run_maihda_models, ///
-		outcome(kessler_sr_23y) ///
-		samplevar(kessler_sr_23y) ///
-		family(continuous) ///
-		stem(k6_nomopup) ///
-		outdir("estimates/nomopup") ///
-		sampleif(!mopup)
-
-	**## Partially invariant factor scores
-
-	import delimited ///
-		"Mplus\20260611 MGCFA\20260703_k6_sex_sexid_pov_metric_scalar_part_fscores", ///
-		delimiter(space, collapse) numericcols(_all) clear
-
-	keep v8 v11
-	rename (v8 v11) (k6_fscore MCSIDCNUM_link)
-	sort MCSIDCNUM_link
-
-	tempfile k6_fscore
-	save `k6_fscore'
-
-	di "`k6_fscore'"
-	confirm file "`k6_fscore'"
+	**## Main analyses, partially invariant factor scores 
 
 	run_maihda_models, ///
 		outcome(k6_fscore) ///
-		samplevar(kessler_sr_23y) ///
 		family(continuous) ///
-		stem(k6_fscore) ///
-		outdir("estimates/fscores") ///
-		mergeusing("`k6_fscore'")
+		stem(k6) ///
+		outdir("$estimates")
 
+	**## Excluding mop-up survey, partially invariant factor scores 
+
+	run_maihda_models, ///
+		outcome(k6_fscore) ///
+		family(continuous) ///
+		stem(k6_nomopup) ///
+		outdir("$estimates/nomopup") ///
+		sampleif(!mopup)
+
+	**## Sum scores
+
+	run_maihda_models, ///
+		outcome(kessler_sr_23y) ///
+		family(continuous) ///
+		stem(k6_sumscore) ///
+		outdir("$estimates/sumscores")
 	
 **# Caseness
 
@@ -264,63 +228,45 @@ end
 
 	run_maihda_models, ///
 		outcome(caseness) ///
-		samplevar(caseness_23y) ///
 		family(binary) ///
 		stem(caseness) ///
-		outdir("estimates")
+		outdir("$estimates")
 
 	**## Excluding mop-up survey
 
 	run_maihda_models, ///
 		outcome(caseness) ///
-		samplevar(caseness_23y) ///
 		family(binary) ///
 		stem(caseness_nomopup) ///
-		outdir("estimates/nomopup") ///
+		outdir("$estimates/nomopup") ///
 		sampleif(!mopup)
-
 		
 **# SWEMWBS
 
-	**## Main analyses 
-
-	run_maihda_models, ///
-		outcome(swemwbs_sr_23y) ///
-		samplevar(swemwbs_sr_23y) ///
-		family(continuous) ///
-		stem(swemwbs) ///
-		outdir("estimates")
-
-	**## Partially invariant factor scores
-
-	import delimited ///
-		"Mplus\20260611 MGCFA\20260611_swemwbs_sex_sexid_pov_scalar_part_fscores", ///
-		delimiter(space, collapse) numericcols(_all) clear
-
-	keep v9 v12
-	rename (v9 v12) (swemwbs_fscore MCSIDCNUM_link)
-	sort MCSIDCNUM_link
-
-	tempfile swemwbs_fscore
-	save `swemwbs_fscore'
+	**## Main analyses, partially invariant factor scores 
 
 	run_maihda_models, ///
 		outcome(swemwbs_fscore) ///
-		samplevar(swemwbs_sr_23y) ///
 		family(continuous) ///
-		stem(swemwbs_fscore) ///
-		outdir("estimates/fscores") ///
-		mergeusing("`swemwbs_fscore'")
+		stem(swemwbs) ///
+		outdir("$estimates")
+
+	**## Sum scores
+
+	run_maihda_models, ///
+		outcome(swemwbs_sr_23y) ///
+		family(continuous) ///
+		stem(swemwbs_sumscore) ///
+		outdir("$estimates/sumscores")
 
 		
 **# Self-harm (any)
 
 	run_maihda_models, ///
 		outcome(selfharm_23y) ///
-		samplevar(selfharm_23y) ///
 		family(binary) ///
 		stem(selfharm) ///
-		outdir("estimates")
+		outdir("$estimates")
 	
 	
 **# Self-harm (count)
@@ -329,26 +275,23 @@ end
 
 	run_maihda_models, ///
 		outcome(selfharm_23y_cont) ///
-		samplevar(selfharm_23y_cont) ///
 		family(poisson) ///
 		stem(selfharm_poisson) ///
-		outdir("estimates/selfharm_cont")
+		outdir("$estimates/selfharm_cont")
 
 	**## Negative binomial models
 
 	run_maihda_models, ///
 		outcome(selfharm_23y_cont) ///
-		samplevar(selfharm_23y_cont) ///
 		family(nbreg) ///
 		stem(selfharm_nbreg) ///
-		outdir("estimates/selfharm_cont")
+		outdir("$estimates/selfharm_cont")
 
 		
 **# Suicide attempts (lifetime)
 
 	run_maihda_models, ///
 		outcome(suicide_23y) ///
-		samplevar(suicide_23y) ///
 		family(binary) ///
 		stem(suicide) ///
-		outdir("estimates")
+		outdir("$estimates")

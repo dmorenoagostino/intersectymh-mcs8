@@ -1,6 +1,6 @@
 DATA: 
     
-    FILE = "../datasets/20260611_align_strata8_sex_sexid_pov.csv";
+    FILE = "../datasets/align_strata8_sex_sexid_pov.csv"; ! folder where Mplus datasets have been stored
 
 VARIABLE:
 
@@ -213,5 +213,5 @@ VARIABLE:
 
     SAVEDATA:
 
-        FILE = 20260611_swemwbs_sex_sexid_pov_scalar_part_fscores.csv;
+        FILE = swemwbs_fscores.csv;  ! file where partially invariant factor scores will be saved
         SAVE = FSCORES;

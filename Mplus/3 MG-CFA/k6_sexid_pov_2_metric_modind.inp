@@ -1,6 +1,6 @@
 DATA: 
     
-    FILE = "../datasets/20260629_align_strata4_sexid_pov.csv";
+    FILE = "../datasets/align_strata4_sexid_pov.csv"; ! folder where Mplus datasets have been stored
 
 VARIABLE:
 
