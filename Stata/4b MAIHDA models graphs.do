@@ -77,82 +77,6 @@ kaboom // added to prevent running the whole script when using the run command s
 **********************************************************************
 **********************************************************************
 
-	
-**# Kessler-6 - partially invariant factor scores - excluding mop-up survey
-	
-	/* using same as above
-	global miny_pred = -1
-	global maxy_pred = 1.75
-	global stepy_pred = 0.25
-	global rangey_pred = $maxy_pred - $miny_pred
-	global markeradd_pred = $rangey_pred / 20
-	
-	global miny_random = -0.3
-	global maxy_random = 0.4
-	global stepy_random = 0.1
-	global rangey_random = $maxy_random - $miny_random
-	global markeradd_random = $rangey_random / 20
-	*/
-
-	use "$estimates/maihda_predictions_supptable", clear
-	keep if outcome == "1 Kessler-6" & type == "2 No mop-up" & n != .
-	ta strata
-		global maxlab = r(r)
-	
-	* Predicted levels
-	
-	gen predicted_estimate_marker = predicted_ub + $markeradd_pred
-	
-		twoway ///
-			(rspike predicted_ub predicted_lb predicted_rank_restricted, lcolor(gs4)) ///
-			(scatter predicted_estimate predicted_rank_restricted, mcolor(black) msymbol(smcircle)) ///
-			(scatter predicted_estimate_marker predicted_rank_restricted, msymbol(i) mlabel(strata) mlabangle(90) mlabposition(0) mlabtextstyle(color(black))), ///
-			ytitle("Stratum-specific predicted levels" "Kessler-6 factor score", size(*1.2)) ///
-			ylabel($miny_pred($stepy_pred)$maxy_pred, angle(horizontal) labsize(*1)) ///
-			yline($miny_pred($stepy_pred)$maxy_pred, lwidth(vthin) lcolor(gray)) ///
-			xtitle("Stratum rank", size(*1.2)) ///
-			xlabel(1 10(10)$maxlab, labsize(*1)) ///
-			legend(off) ///
-			scheme(s1mono) ///
-			name(pred_k6_nomopup, replace) ///
-			xsize(5) 
-			
-		graph save "$estimates/nomopup/pred_k6_nomopup", replace 
-		graph export "$estimates/nomopup/pred_k6_nomopup.png", replace width(1000)
-		graph export "$estimates/nomopup/pred_k6_nomopup.pdf", replace 
-	
-	
-	* Random / intersectional effects
-	
-	gen random_estimate_marker = random_ub + $markeradd_random
-		
-		twoway ///
-			(rspike random_ub random_lb random_rank_restricted, lcolor(gs4)) ///
-			(scatter random_estimate random_rank_restricted, mcolor(black) msymbol(smcircle)) ///
-			(scatter random_estimate_marker random_rank_restricted, msymbol(i) mlabel(strata) mlabangle(90) mlabposition(0) mlabtextstyle(color(black))) ///
-			(rspike random_ub random_lb random_rank_restricted if random_ub < 0 | random_lb > 0, lcolor(red)) ///
-			(scatter random_estimate random_rank_restricted if random_ub < 0 | random_lb > 0, mcolor(red) msymbol(smcircle)) ///
-			(scatter random_estimate_marker random_rank_restricted if random_ub < 0 | random_lb > 0, msymbol(i) mlabel(strata) mlabangle(90) mlabposition(0) mlabtextstyle(color(red))), ///
-			ytitle("Stratum-specific random effects" "Kessler-6 factor score", size(*1.2)) ///
-			ylabel($miny_random($stepy_random)$maxy_random, angle(horizontal) labsize(*1)) ///
-			yline($miny_random($stepy_random)$maxy_random, lwidth(vthin) lcolor(gray)) ///
-			yline(0, lcolor(red)) ///
-			xtitle("Stratum rank", size(*1.2)) ///
-			xlabel(1 10(10)$maxlab, labsize(*1)) ///
-			legend(off) ///
-			scheme(s1mono) ///
-			name(random_k6_nomopup, replace) ///
-			xsize(5) 
-			
-		graph save "$estimates/nomopup/random_k6_nomopup", replace 
-		graph export "$estimates/nomopup/random_k6_nomopup.png", replace width(1000)
-		graph export "$estimates/nomopup/random_k6_nomopup.pdf", replace 
-		
-	
-**********************************************************************
-**********************************************************************
-**********************************************************************
-
 
 **# Kessler-6 - sum scores 
 	
@@ -169,7 +93,7 @@ kaboom // added to prevent running the whole script when using the run command s
 	global markeradd_random = $rangey_random / 20
 
 	use "$estimates/maihda_predictions_supptable", clear
-	keep if outcome == "1 Kessler-6" & type == "3 Sum scores" & n != .
+	keep if outcome == "1 Kessler-6" & type == "2 Sum scores" & n != .
 	ta strata
 		global maxlab = r(r)
 	
@@ -223,6 +147,81 @@ kaboom // added to prevent running the whole script when using the run command s
 		graph export "$estimates/sumscores/random_k6_sumscore.png", replace width(1000)
 		graph export "$estimates/sumscores/random_k6_sumscore.pdf", replace 
 		
+		
+**********************************************************************
+**********************************************************************
+**********************************************************************
+
+	
+**# Kessler-6 - partially invariant factor scores - excluding mop-up survey
+	
+	global miny_pred = -1
+	global maxy_pred = 1.75
+	global stepy_pred = 0.25
+	global rangey_pred = $maxy_pred - $miny_pred
+	global markeradd_pred = $rangey_pred / 20
+	
+	global miny_random = -0.3
+	global maxy_random = 0.4
+	global stepy_random = 0.1
+	global rangey_random = $maxy_random - $miny_random
+	global markeradd_random = $rangey_random / 20
+	
+	use "$estimates/maihda_predictions_supptable", clear
+	keep if outcome == "1 Kessler-6" & type == "3 No mop-up" & n != .
+	ta strata
+		global maxlab = r(r)
+	
+	* Predicted levels
+	
+	gen predicted_estimate_marker = predicted_ub + $markeradd_pred
+	
+		twoway ///
+			(rspike predicted_ub predicted_lb predicted_rank_restricted, lcolor(gs4)) ///
+			(scatter predicted_estimate predicted_rank_restricted, mcolor(black) msymbol(smcircle)) ///
+			(scatter predicted_estimate_marker predicted_rank_restricted, msymbol(i) mlabel(strata) mlabangle(90) mlabposition(0) mlabtextstyle(color(black))), ///
+			ytitle("Stratum-specific predicted levels" "Kessler-6 factor score", size(*1.2)) ///
+			ylabel($miny_pred($stepy_pred)$maxy_pred, angle(horizontal) labsize(*1)) ///
+			yline($miny_pred($stepy_pred)$maxy_pred, lwidth(vthin) lcolor(gray)) ///
+			xtitle("Stratum rank", size(*1.2)) ///
+			xlabel(1 10(10)$maxlab, labsize(*1)) ///
+			legend(off) ///
+			scheme(s1mono) ///
+			name(pred_k6_nomopup, replace) ///
+			xsize(5) 
+			
+		graph save "$estimates/nomopup/pred_k6_nomopup", replace 
+		graph export "$estimates/nomopup/pred_k6_nomopup.png", replace width(1000)
+		graph export "$estimates/nomopup/pred_k6_nomopup.pdf", replace 
+	
+	
+	* Random / intersectional effects
+	
+	gen random_estimate_marker = random_ub + $markeradd_random
+		
+		twoway ///
+			(rspike random_ub random_lb random_rank_restricted, lcolor(gs4)) ///
+			(scatter random_estimate random_rank_restricted, mcolor(black) msymbol(smcircle)) ///
+			(scatter random_estimate_marker random_rank_restricted, msymbol(i) mlabel(strata) mlabangle(90) mlabposition(0) mlabtextstyle(color(black))) ///
+			(rspike random_ub random_lb random_rank_restricted if random_ub < 0 | random_lb > 0, lcolor(red)) ///
+			(scatter random_estimate random_rank_restricted if random_ub < 0 | random_lb > 0, mcolor(red) msymbol(smcircle)) ///
+			(scatter random_estimate_marker random_rank_restricted if random_ub < 0 | random_lb > 0, msymbol(i) mlabel(strata) mlabangle(90) mlabposition(0) mlabtextstyle(color(red))), ///
+			ytitle("Stratum-specific random effects" "Kessler-6 factor score", size(*1.2)) ///
+			ylabel($miny_random($stepy_random)$maxy_random, angle(horizontal) labsize(*1)) ///
+			yline($miny_random($stepy_random)$maxy_random, lwidth(vthin) lcolor(gray)) ///
+			yline(0, lcolor(red)) ///
+			xtitle("Stratum rank", size(*1.2)) ///
+			xlabel(1 10(10)$maxlab, labsize(*1)) ///
+			legend(off) ///
+			scheme(s1mono) ///
+			name(random_k6_nomopup, replace) ///
+			xsize(5) 
+			
+		graph save "$estimates/nomopup/random_k6_nomopup", replace 
+		graph export "$estimates/nomopup/random_k6_nomopup.png", replace width(1000)
+		graph export "$estimates/nomopup/random_k6_nomopup.pdf", replace 
+		
+	
 		
 **********************************************************************
 **********************************************************************
@@ -324,7 +323,7 @@ kaboom // added to prevent running the whole script when using the run command s
 	* Predicted levels
 	
 	use "$estimates/maihda_predictions_supptable", clear
-	keep if outcome == "2 Caseness" & type == "1 Main" & n != .
+	keep if outcome == "2 Caseness" & type == "3 No mop-up" & n != .
 	ta strata
 		global maxlab = r(r)
 	
@@ -471,7 +470,7 @@ kaboom // added to prevent running the whole script when using the run command s
 	global markeradd_random = $rangey_random / 20
 
 	use "$estimates/maihda_predictions_supptable", clear
-	keep if outcome == "3 SWEMWBS" & type == "3 Sum scores" & n != .
+	keep if outcome == "3 SWEMWBS" & type == "2 Sum scores" & n != .
 	ta strata
 		global maxlab = r(r)
 	
@@ -841,22 +840,6 @@ kaboom // added to prevent running the whole script when using the run command s
 		
 	}
 		
-	* No mop-up
-	
-	foreach outcome in k6 caseness {
-	
-		graph combine "$estimates/nomopup/pred_`outcome'_nomopup" "$estimates/nomopup/random_`outcome'_nomopup", rows(2) xsize(4) iscale(*0.85) name(comb_`outcome'_nomopup, replace)
-		
-	}
-		
-		graph combine ///
-			comb_k6_nomopup comb_caseness_nomopup ///
-			, name(comb_nomopup, replace)
-			
-		graph save "$estimates/nomopup/comb_nomopup", replace
-		graph export "$estimates/nomopup/comb_nomopup.png", replace
-		graph export "$estimates/nomopup/comb_nomopup.pdf", replace
-		graph export "$estimates/nomopup/comb_nomopup.svg", replace
 		
 	* Sum scores
 		
@@ -874,6 +857,26 @@ kaboom // added to prevent running the whole script when using the run command s
 		graph export "$estimates/sumscores/comb_sumscore.png", replace
 		graph export "$estimates/sumscores/comb_sumscore.pdf", replace
 		graph export "$estimates/sumscores/comb_sumscore.svg", replace
+		
+		
+	* No mop-up
+	
+	foreach outcome in k6 caseness {
+	
+		graph combine "$estimates/nomopup/pred_`outcome'_nomopup" "$estimates/nomopup/random_`outcome'_nomopup", rows(2) xsize(4) iscale(*0.85) name(comb_`outcome'_nomopup, replace)
+		
+	}
+		
+		graph combine ///
+			comb_k6_nomopup comb_caseness_nomopup ///
+			, name(comb_nomopup, replace)
+			
+		graph save "$estimates/nomopup/comb_nomopup", replace
+		graph export "$estimates/nomopup/comb_nomopup.png", replace
+		graph export "$estimates/nomopup/comb_nomopup.pdf", replace
+		graph export "$estimates/nomopup/comb_nomopup.svg", replace
+		
+		
 		
 	* Self-harm cont 
 		
