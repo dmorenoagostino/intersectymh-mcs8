@@ -334,6 +334,112 @@ kaboom // added to prevent running the whole script when using the run command s
 **********************************************************************
 **********************************************************************
 
+**# ADDITIONAL MODELS: SUM SCORES
+						
+**## Kessler-6 - sum scores 
+
+	local rownumber = `rownumber' + 1
+
+	use "$estimates/sumscores/k6_sumscore", clear
+	
+	putexcel A`rownumber' = "k6_sumscore"
+	
+	estimates use "$estimates/sumscores/k6_sumscore_null"
+	estimates replay, baselevels
+	
+		putexcel B`rownumber' = `e(N)'
+		
+		estat icc
+		putexcel C`rownumber' = `r(icc2)'
+		putexcel D`rownumber' = matrix(r(ci2))
+		
+		scalar sigma2_u_null = _b[/var(_cons[strata48])]
+		putexcel F`rownumber' = sigma2_u_null
+		
+	estimates use "$estimates/sumscores/k6_sumscore_main"
+	estimates replay, baselevels
+	
+		mat coeffs = ///
+			r(table)[1,2], r(table)[5,2], r(table)[6,2], r(table)[4,2], /// coeffs for gender: male
+			r(table)[1,4], r(table)[5,4], r(table)[6,4], r(table)[4,4], /// coeffs for ethnicity: Mixed
+			r(table)[1,5], r(table)[5,5], r(table)[6,5], r(table)[4,5], /// coeffs for ethnicity: Indian
+			r(table)[1,6], r(table)[5,6], r(table)[6,6], r(table)[4,6], /// coeffs for ethnicity: Pakistani/Bangladeshi
+			r(table)[1,7], r(table)[5,7], r(table)[6,7], r(table)[4,7], /// coeffs for ethnicity: Black
+			r(table)[1,8], r(table)[5,8], r(table)[6,8], r(table)[4,8], /// coeffs for ethnicity: Other
+			r(table)[1,10], r(table)[5,10], r(table)[6,10], r(table)[4,10], /// coeffs for sexuality: sexual minority
+			r(table)[1,12], r(table)[5,12], r(table)[6,12], r(table)[4,12] // coeffs for childhood poverty
+	
+		estat icc
+		putexcel G`rownumber' = `r(icc2)'
+		putexcel H`rownumber' = matrix(r(ci2))
+		
+		scalar sigma2_u_main = _b[/var(_cons[strata48])] 
+		putexcel J`rownumber' = sigma2_u_main
+					
+		scalar pcv = 100*(sigma2_u_null - sigma2_u_main) / sigma2_u_null
+		putexcel K`rownumber' = pcv
+		
+		putexcel L`rownumber' = matrix(coeffs)
+	
+	
+	
+**********************************************************************
+**********************************************************************
+**********************************************************************			
+	
+	
+						
+**## SWEMWBS - sum scores
+
+	local rownumber = `rownumber' + 1
+
+	use "$estimates/sumscores/swemwbs_sumscore", clear
+	
+	putexcel A`rownumber' = "swemwbs_sumscore"
+	
+	estimates use "$estimates/sumscores/swemwbs_sumscore_null"
+	estimates replay, baselevels
+	
+		putexcel B`rownumber' = `e(N)'
+		
+		estat icc
+		putexcel C`rownumber' = `r(icc2)'
+		putexcel D`rownumber' = matrix(r(ci2))
+		
+		scalar sigma2_u_null = _b[/var(_cons[strata48])]
+		putexcel F`rownumber' = sigma2_u_null
+		
+	estimates use "$estimates/sumscores/swemwbs_sumscore_main"
+	estimates replay, baselevels
+	
+		mat coeffs = ///
+			r(table)[1,2], r(table)[5,2], r(table)[6,2], r(table)[4,2], /// coeffs for gender: male
+			r(table)[1,4], r(table)[5,4], r(table)[6,4], r(table)[4,4], /// coeffs for ethnicity: Mixed
+			r(table)[1,5], r(table)[5,5], r(table)[6,5], r(table)[4,5], /// coeffs for ethnicity: Indian
+			r(table)[1,6], r(table)[5,6], r(table)[6,6], r(table)[4,6], /// coeffs for ethnicity: Pakistani/Bangladeshi
+			r(table)[1,7], r(table)[5,7], r(table)[6,7], r(table)[4,7], /// coeffs for ethnicity: Black
+			r(table)[1,8], r(table)[5,8], r(table)[6,8], r(table)[4,8], /// coeffs for ethnicity: Other
+			r(table)[1,10], r(table)[5,10], r(table)[6,10], r(table)[4,10], /// coeffs for sexuality: sexual minority
+			r(table)[1,12], r(table)[5,12], r(table)[6,12], r(table)[4,12] // coeffs for childhood poverty
+	
+		estat icc
+		putexcel G`rownumber' = `r(icc2)'
+		putexcel H`rownumber' = matrix(r(ci2))
+		
+		scalar sigma2_u_main = _b[/var(_cons[strata48])] 
+		putexcel J`rownumber' = sigma2_u_main
+					
+		scalar pcv = 100*(sigma2_u_null - sigma2_u_main) / sigma2_u_null
+		putexcel K`rownumber' = pcv
+		
+		putexcel L`rownumber' = matrix(coeffs)
+			
+
+
+**********************************************************************
+**********************************************************************
+**********************************************************************
+
 **# ADDITIONAL MODELS: NO MOP-UP
 			
 **## Kessler-6 - partially invariant factor scores - excluding mop-up survey
@@ -388,7 +494,7 @@ kaboom // added to prevent running the whole script when using the run command s
 **********************************************************************
 		
 	
-**# Caseness (Kessler-6 = 13+) - excluding mop-up survey
+**## Caseness (Kessler-6 = 13+) - excluding mop-up survey
 
 	local rownumber = `rownumber' + 1
 
@@ -539,112 +645,6 @@ kaboom // added to prevent running the whole script when using the run command s
 		putexcel L`rownumber' = matrix(coeffs)
 	
 	
-
-**********************************************************************
-**********************************************************************
-**********************************************************************
-
-**# ADDITIONAL MODELS: SUM SCORES
-						
-**## Kessler-6 - sum scores 
-
-	local rownumber = `rownumber' + 1
-
-	use "$estimates/sumscores/k6_sumscore", clear
-	
-	putexcel A`rownumber' = "k6_sumscore"
-	
-	estimates use "$estimates/sumscores/k6_sumscore_null"
-	estimates replay, baselevels
-	
-		putexcel B`rownumber' = `e(N)'
-		
-		estat icc
-		putexcel C`rownumber' = `r(icc2)'
-		putexcel D`rownumber' = matrix(r(ci2))
-		
-		scalar sigma2_u_null = _b[/var(_cons[strata48])]
-		putexcel F`rownumber' = sigma2_u_null
-		
-	estimates use "$estimates/sumscores/k6_sumscore_main"
-	estimates replay, baselevels
-	
-		mat coeffs = ///
-			r(table)[1,2], r(table)[5,2], r(table)[6,2], r(table)[4,2], /// coeffs for gender: male
-			r(table)[1,4], r(table)[5,4], r(table)[6,4], r(table)[4,4], /// coeffs for ethnicity: Mixed
-			r(table)[1,5], r(table)[5,5], r(table)[6,5], r(table)[4,5], /// coeffs for ethnicity: Indian
-			r(table)[1,6], r(table)[5,6], r(table)[6,6], r(table)[4,6], /// coeffs for ethnicity: Pakistani/Bangladeshi
-			r(table)[1,7], r(table)[5,7], r(table)[6,7], r(table)[4,7], /// coeffs for ethnicity: Black
-			r(table)[1,8], r(table)[5,8], r(table)[6,8], r(table)[4,8], /// coeffs for ethnicity: Other
-			r(table)[1,10], r(table)[5,10], r(table)[6,10], r(table)[4,10], /// coeffs for sexuality: sexual minority
-			r(table)[1,12], r(table)[5,12], r(table)[6,12], r(table)[4,12] // coeffs for childhood poverty
-	
-		estat icc
-		putexcel G`rownumber' = `r(icc2)'
-		putexcel H`rownumber' = matrix(r(ci2))
-		
-		scalar sigma2_u_main = _b[/var(_cons[strata48])] 
-		putexcel J`rownumber' = sigma2_u_main
-					
-		scalar pcv = 100*(sigma2_u_null - sigma2_u_main) / sigma2_u_null
-		putexcel K`rownumber' = pcv
-		
-		putexcel L`rownumber' = matrix(coeffs)
-	
-	
-	
-**********************************************************************
-**********************************************************************
-**********************************************************************			
-	
-	
-						
-**## SWEMWBS - sum scores
-
-	local rownumber = `rownumber' + 1
-
-	use "$estimates/sumscores/swemwbs_sumscore", clear
-	
-	putexcel A`rownumber' = "swemwbs_sumscore"
-	
-	estimates use "$estimates/sumscores/swemwbs_sumscore_null"
-	estimates replay, baselevels
-	
-		putexcel B`rownumber' = `e(N)'
-		
-		estat icc
-		putexcel C`rownumber' = `r(icc2)'
-		putexcel D`rownumber' = matrix(r(ci2))
-		
-		scalar sigma2_u_null = _b[/var(_cons[strata48])]
-		putexcel F`rownumber' = sigma2_u_null
-		
-	estimates use "$estimates/sumscores/swemwbs_sumscore_main"
-	estimates replay, baselevels
-	
-		mat coeffs = ///
-			r(table)[1,2], r(table)[5,2], r(table)[6,2], r(table)[4,2], /// coeffs for gender: male
-			r(table)[1,4], r(table)[5,4], r(table)[6,4], r(table)[4,4], /// coeffs for ethnicity: Mixed
-			r(table)[1,5], r(table)[5,5], r(table)[6,5], r(table)[4,5], /// coeffs for ethnicity: Indian
-			r(table)[1,6], r(table)[5,6], r(table)[6,6], r(table)[4,6], /// coeffs for ethnicity: Pakistani/Bangladeshi
-			r(table)[1,7], r(table)[5,7], r(table)[6,7], r(table)[4,7], /// coeffs for ethnicity: Black
-			r(table)[1,8], r(table)[5,8], r(table)[6,8], r(table)[4,8], /// coeffs for ethnicity: Other
-			r(table)[1,10], r(table)[5,10], r(table)[6,10], r(table)[4,10], /// coeffs for sexuality: sexual minority
-			r(table)[1,12], r(table)[5,12], r(table)[6,12], r(table)[4,12] // coeffs for childhood poverty
-	
-		estat icc
-		putexcel G`rownumber' = `r(icc2)'
-		putexcel H`rownumber' = matrix(r(ci2))
-		
-		scalar sigma2_u_main = _b[/var(_cons[strata48])] 
-		putexcel J`rownumber' = sigma2_u_main
-					
-		scalar pcv = 100*(sigma2_u_null - sigma2_u_main) / sigma2_u_null
-		putexcel K`rownumber' = pcv
-		
-		putexcel L`rownumber' = matrix(coeffs)
-			
-
 
 **********************************************************************
 **********************************************************************

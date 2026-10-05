@@ -205,7 +205,15 @@ end
 		stem(k6) ///
 		outdir("$estimates")
 
-	**## Excluding mop-up survey, partially invariant factor scores 
+**## Sum scores
+
+	run_maihda_models, ///
+		outcome(kessler_sr_23y) ///
+		family(continuous) ///
+		stem(k6_sumscore) ///
+		outdir("$estimates/sumscores")
+		
+**## Excluding mop-up survey, partially invariant factor scores 
 
 	run_maihda_models, ///
 		outcome(k6_fscore) ///
@@ -214,13 +222,7 @@ end
 		outdir("$estimates/nomopup") ///
 		sampleif(!mopup)
 
-	**## Sum scores
-
-	run_maihda_models, ///
-		outcome(kessler_sr_23y) ///
-		family(continuous) ///
-		stem(k6_sumscore) ///
-		outdir("$estimates/sumscores")
+		
 	
 **# Caseness
 
@@ -241,6 +243,8 @@ end
 		outdir("$estimates/nomopup") ///
 		sampleif(!mopup)
 		
+		
+		
 **# SWEMWBS
 
 	**## Main analyses, partially invariant factor scores 
@@ -258,6 +262,7 @@ end
 		family(continuous) ///
 		stem(swemwbs_sumscore) ///
 		outdir("$estimates/sumscores")
+		
 
 		
 **# Self-harm (any)
@@ -267,6 +272,7 @@ end
 		family(binary) ///
 		stem(selfharm) ///
 		outdir("$estimates")
+	
 	
 	
 **# Self-harm (count)
@@ -287,6 +293,7 @@ end
 		stem(selfharm_nbreg) ///
 		outdir("$estimates/selfharm_cont")
 
+		
 		
 **# Suicide attempts (lifetime)
 

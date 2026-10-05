@@ -32,34 +32,6 @@ kaboom // added to prevent running the whole script when using the run command s
 **********************************************************************
 **********************************************************************
 
-	
-**# Kessler-6 - partially invariant factor scores - excluding mop-up survey
-	
-	use "$estimates/nomopup/k6_nomopup_strata48", clear
-	
-	* Predicted levels
-	
-	gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
-	
-	* Random / intersectional effects
-		
-	gen random_main_lb = random_main - 1.96 * random_main_se
-	gen random_main_ub = random_main + 1.96 * random_main_se
-	
-	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
-	
-	gen outcome = "1 Kessler-6"
-	gen type = "2 No mop-up"
-	
-	append using `maihda_predictions'
-	save `maihda_predictions', replace
-	
-	
-**********************************************************************
-**********************************************************************
-**********************************************************************
-
 
 **# Kessler-6 - sum scores 
 	
@@ -78,12 +50,41 @@ kaboom // added to prevent running the whole script when using the run command s
 	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
 	
 	gen outcome = "1 Kessler-6"
-	gen type = "3 Sum scores"
+	gen type = "2 Sum scores"
 	
 	append using `maihda_predictions'
 	save `maihda_predictions', replace
 		
+
+**********************************************************************
+**********************************************************************
+**********************************************************************
+
+	
+**# Kessler-6 - partially invariant factor scores - excluding mop-up survey
+	
+	use "$estimates/nomopup/k6_nomopup_strata48", clear
+	
+	* Predicted levels
+	
+	gen pred_main_lb = pred_main - 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
+	gen pred_main_ub = pred_main + 1.96 * sqrt(fixed_main_se^2 + random_main_se^2)
+	
+	* Random / intersectional effects
 		
+	gen random_main_lb = random_main - 1.96 * random_main_se
+	gen random_main_ub = random_main + 1.96 * random_main_se
+	
+	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
+	
+	gen outcome = "1 Kessler-6"
+	gen type = "3 No mop-up"
+	
+	append using `maihda_predictions'
+	save `maihda_predictions', replace
+	
+	
+
 **********************************************************************
 **********************************************************************
 **********************************************************************
@@ -154,7 +155,7 @@ kaboom // added to prevent running the whole script when using the run command s
 	collapse (mean) birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub, by(strata48)
 	
 	gen outcome = "2 Caseness"
-	gen type = "2 No mop-up"
+	gen type = "3 No mop-up"
 	
 	append using `maihda_predictions'
 	save `maihda_predictions', replace
@@ -210,7 +211,7 @@ kaboom // added to prevent running the whole script when using the run command s
 	keep birthsex ethnicity_6cat sexual_minority_23y poverty_9m_3y strata48 n pred_main pred_main_lb pred_main_ub random_main random_main_lb random_main_ub 
 	
 	gen outcome = "3 SWEMWBS"
-	gen type = "3 Sum scores"
+	gen type = "2 Sum scores"
 	
 	append using `maihda_predictions'
 	save `maihda_predictions', replace
