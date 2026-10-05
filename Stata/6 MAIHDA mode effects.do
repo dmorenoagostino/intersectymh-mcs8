@@ -129,7 +129,7 @@ kaboom // added to prevent running the whole script when using the run command s
 	* Null / intercepts-only model
 		
 		meglm k6_fscore_sim`i' [pweight = hovwt2] || strata48:
-			estimates save "$estimates/mode/k6_sim`i'_null", replace
+			estimates save "$mode/k6_sim`i'_null", replace
 			estat icc 
 			
 			predict pred_null, fitted // m1Am, includes fixed and random parts
@@ -137,7 +137,7 @@ kaboom // added to prevent running the whole script when using the run command s
 		* Main effects model
 
 		meglm k6_fscore_sim`i' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y [pweight = hovwt2] || strata48:, baselevels
-			estimates save "$estimates/mode/k6_sim`i'_main", replace
+			estimates save "$mode/k6_sim`i'_main", replace
 			estat icc 
 			
 			predict pred_main, fitted // m1Bm, includes fixed and random parts
@@ -338,7 +338,7 @@ kaboom // added to prevent running the whole script when using the run command s
 	* Null / intercepts-only model
 		
 		meglm swemwbs_fscore_sim`i' [pweight = hovwt2] || strata48:
-			estimates save "$estimates/mode/swemwbs_sim`i'_null", replace
+			estimates save "$mode/swemwbs_sim`i'_null", replace
 			estat icc 
 			
 			predict pred_null, fitted // m1Am, includes fixed and random parts
@@ -346,7 +346,7 @@ kaboom // added to prevent running the whole script when using the run command s
 		* Main effects model
 
 		meglm swemwbs_fscore_sim`i' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y [pweight = hovwt2] || strata48:, baselevels
-			estimates save "$estimates/mode/swemwbs_sim`i'_main", replace
+			estimates save "$mode/swemwbs_sim`i'_main", replace
 			estat icc 
 			
 			predict pred_main, fitted // m1Bm, includes fixed and random parts
@@ -376,7 +376,7 @@ kaboom // added to prevent running the whole script when using the run command s
 		
 		use "$mode/swemwbs_sim`i'", clear
 				
-		local rownumber = `i' + 1
+		local rownumber = `i' + 7 // so that this is added after the Kessler-6 rows
 	
 		putexcel A`rownumber' = "swemwbs"
 		putexcel B`rownumber' = "Scenario `i'"
