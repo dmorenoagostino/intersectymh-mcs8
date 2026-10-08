@@ -1,4 +1,25 @@
-kaboom // added to prevent running the whole script when using the run command shortcut
+/*
+
+Intersectional inequalities in youth mental health measurement and outcomes: 
+population-representative evidence from the UK Millennium Cohort Study
+
+Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
+
+	Part 5. I-MAIHDA models, quantitative bias analysis (QBA) for mode effects
+	
+		This code creates a dataset that simulates multiple scenarios with 
+		different types and levels of mode effects, as a quantitative bias
+		analysis (QBA). It then runs I-MAIHDA models over those different 
+		scenarios, exports the model-wide results, and generates visualisations
+		of the stratum-specific predictions under each of the QBA scenarios.
+	
+		Portions of this code were adapted from: 
+		Evans, C.R., G. Leckie, S.V. Subramanian, A. Bell, & J. Merlo. (2024.).
+		A Tutorial for Conducting Intersectional Multilevel Analysis of Individual 
+		Heterogeneity and Discriminatory Accuracy (MAIHDA). SSM - Population Health.	 
+		https://doi.org/10.1016/j.ssmph.2024.101664
+
+*/
 
 **# Setup
 
@@ -18,7 +39,7 @@ kaboom // added to prevent running the whole script when using the run command s
 	tabstat k6_fscore swemwbs_fscore, stats(mean sd) by(mode_online) // these go in the expected direction: that more computerised modes would elicit a higher disclosure (worse outcome levels)
 
 	
-	* Scenario A: homogeneous mode effect
+	* Scenario A: homogeneous mode effect; the following code adds (for Kessler-6) or subtracts (for SWEMWBS) a fixed deviation or "correction" factor of 0.2SD, 0.4SD, or 0.6SD among participants in a face-to-face mode
 
 	forvalues i = 1(1)3 {
 			gen k6_fscore_sim`i' = k6_fscore
@@ -28,16 +49,16 @@ kaboom // added to prevent running the whole script when using the run command s
 		}
 
 
-	* Scenario B: heterogeneous mode effect
+	* Scenario B: heterogeneous mode effect; the following code adds (for Kessler-6) or subtracts (for SWEMWBS) a further deviation or "correction" factor of 0.1SD, 0.2SD, or 0.3SD to the values generated in Scenario A, among sexual minority participants, ethnic minority participants, and participants with a history of childhood poverty; multiple deviations/corrections can be made for participants meeting multiple of these criteria
 
 	forvalues i = 1(1)3 {
 		gen k6_fscore_sim`i'b = k6_fscore_sim`i'
-			replace k6_fscore_sim`i'b = k6_fscore_sim`i'b + 0.1*`i' if inrange(sexual_minority_23y,1,2) & mode_online == 0 & k6_fscore != .
+			replace k6_fscore_sim`i'b = k6_fscore_sim`i'b + 0.1*`i' if sexual_minority_23y == 1 & mode_online == 0 & k6_fscore != .
 			replace k6_fscore_sim`i'b = k6_fscore_sim`i'b + 0.1*`i' if inrange(ethnicity_6cat,2,6) & mode_online == 0 & k6_fscore != .
 			replace k6_fscore_sim`i'b = k6_fscore_sim`i'b + 0.1*`i' if poverty_9m_3y == 1 & mode_online == 0 & k6_fscore != .
 			
 		gen swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'
-			replace swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'b - 0.1*`i' if inrange(sexual_minority_23y,1,2) & mode_online == 0 & swemwbs_fscore != .
+			replace swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'b - 0.1*`i' if sexual_minority_23y == 1 & mode_online == 0 & swemwbs_fscore != .
 			replace swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'b - 0.1*`i' if inrange(ethnicity_6cat,2,6) & mode_online == 0 & swemwbs_fscore != .
 			replace swemwbs_fscore_sim`i'b = swemwbs_fscore_sim`i'b - 0.1*`i' if poverty_9m_3y == 1 & mode_online == 0 & swemwbs_fscore != .
 		}
@@ -126,25 +147,23 @@ kaboom // added to prevent running the whole script when using the run command s
 		drop if strata48 == . & k6_fscore == .
 		
 	
-	* Null / intercepts-only model
+		* Null / intercepts-only model
 		
 		meglm k6_fscore_sim`i' [pweight = hovwt2] || strata48:
 			estimates save "$mode/k6_sim`i'_null", replace
-			estat icc 
 			
-			predict pred_null, fitted // m1Am, includes fixed and random parts
+			predict pred_null, fitted // predicted values, includes fixed and random parts
 			
 		* Main effects model
 
 		meglm k6_fscore_sim`i' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y [pweight = hovwt2] || strata48:, baselevels
 			estimates save "$mode/k6_sim`i'_main", replace
-			estat icc 
 			
-			predict pred_main, fitted // m1Bm, includes fixed and random parts
-			predict random_main, reffect reses(random_main_se) // m1Bu and m1Buse
+			predict pred_main, fitted // predicted values, includes fixed and random parts
+			predict random_main, reffect reses(random_main_se) // random effects and their standard errors
 			
-			predict fixed_main, xb // fixed-portion linear prediction
-			predict fixed_main_se, stdp // m1Bxbse, SE for the fixed-portion linear prediction
+			predict fixed_main, xb // fixed-portion linear predictions
+			predict fixed_main_se, stdp // standard errors for the fixed-portion linear predictions
 			
 	**## Saving data
 		
@@ -163,7 +182,7 @@ kaboom // added to prevent running the whole script when using the run command s
 		save "$mode/k6_sim`i'_strata48", replace
 		
 		
-	**## Tabulating results
+	**## Exporting model-wide results
 		
 		use "$mode/k6_sim`i'", clear
 				
@@ -211,7 +230,7 @@ kaboom // added to prevent running the whole script when using the run command s
 		putexcel M`rownumber' = matrix(coeffs)
 		
 		
-	**## Visualising results
+	**## Visualising stratum-specific predictions
 		
 		use "$mode/k6_sim`i'_strata48", clear
 		
@@ -335,25 +354,24 @@ kaboom // added to prevent running the whole script when using the run command s
 		drop if strata48 == . & swemwbs_fscore == .
 		
 	
-	* Null / intercepts-only model
+		* Null / intercepts-only model
 		
 		meglm swemwbs_fscore_sim`i' [pweight = hovwt2] || strata48:
 			estimates save "$mode/swemwbs_sim`i'_null", replace
-			estat icc 
 			
-			predict pred_null, fitted // m1Am, includes fixed and random parts
+			predict pred_null, fitted // predicted values, includes fixed and random parts
+
 			
 		* Main effects model
 
 		meglm swemwbs_fscore_sim`i' i.birthsex i.ethnicity_6cat i.sexual_minority_23y i.poverty_9m_3y [pweight = hovwt2] || strata48:, baselevels
 			estimates save "$mode/swemwbs_sim`i'_main", replace
-			estat icc 
 			
-			predict pred_main, fitted // m1Bm, includes fixed and random parts
-			predict random_main, reffect reses(random_main_se) // m1Bu and m1Buse
+			predict pred_main, fitted // predicted values, includes fixed and random parts
+			predict random_main, reffect reses(random_main_se) // random effects and their standard errors
 			
-			predict fixed_main, xb // fixed-portion linear prediction
-			predict fixed_main_se, stdp // m1Bxbse, SE for the fixed-portion linear prediction
+			predict fixed_main, xb // fixed-portion linear predictions
+			predict fixed_main_se, stdp // standard errors for the fixed-portion linear predictions
 			
 	**## Saving data
 		
@@ -372,7 +390,7 @@ kaboom // added to prevent running the whole script when using the run command s
 		save "$mode/swemwbs_sim`i'_strata48", replace
 		
 		
-	**## Tabulating results
+	**## Exporting model-wide results
 		
 		use "$mode/swemwbs_sim`i'", clear
 				
@@ -420,7 +438,7 @@ kaboom // added to prevent running the whole script when using the run command s
 		putexcel M`rownumber' = matrix(coeffs)
 		
 		
-	**## Visualising results
+	**## Visualising stratum-specific predictions
 		
 		use "$mode/swemwbs_sim`i'_strata48", clear
 		
