@@ -1,4 +1,25 @@
-kaboom // added to prevent running the whole script when using the run command shortcut
+/*
+
+Intersectional inequalities in youth mental health measurement and outcomes: 
+population-representative evidence from the UK Millennium Cohort Study
+
+Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
+
+	Part 4a. I-MAIHDA model-wide tables and coefficient plots
+	
+		This code uses the results from models ran in the previous script
+		(part 3) to export them to a combined results table. 
+		
+		It then uses that table to produce plots depicting the coefficients for
+		the main/additive effects across the different models.
+	
+		Portions of this code were adapted from: 
+		Evans, C.R., G. Leckie, S.V. Subramanian, A. Bell, & J. Merlo. (2024.).
+		A Tutorial for Conducting Intersectional Multilevel Analysis of Individual 
+		Heterogeneity and Discriminatory Accuracy (MAIHDA). SSM - Population Health.	 
+		https://doi.org/10.1016/j.ssmph.2024.101664
+
+*/
 
 **# Setup
 

@@ -1,4 +1,26 @@
-kaboom // added to prevent running the whole script when using the run command shortcut
+/*
+
+Intersectional inequalities in youth mental health measurement and outcomes: 
+population-representative evidence from the UK Millennium Cohort Study
+
+Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
+
+	Part 4b. I-MAIHDA stratum-specific predictions table
+	
+		This code uses the results from models ran in the previous script
+		(part 3) to produce the stratum-specific predicted levels and random
+		effects. 
+		
+		It then combines the predictions to produce a combined table after
+		suppression of results from strata with fewer than 10 observations.
+	
+		Portions of this code were adapted from: 
+		Evans, C.R., G. Leckie, S.V. Subramanian, A. Bell, & J. Merlo. (2024.).
+		A Tutorial for Conducting Intersectional Multilevel Analysis of Individual 
+		Heterogeneity and Discriminatory Accuracy (MAIHDA). SSM - Population Health.	 
+		https://doi.org/10.1016/j.ssmph.2024.101664
+
+*/
 
 **# Setup
 

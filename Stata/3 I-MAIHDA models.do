@@ -1,4 +1,31 @@
-kaboom // added to prevent running the whole script when using the run command shortcut
+/*
+
+Intersectional inequalities in youth mental health measurement and outcomes: 
+population-representative evidence from the UK Millennium Cohort Study
+
+Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
+
+	Part 3. I-MAIHDA models
+	
+		This code first imports the factor scores generated through the 
+		measurement invariance/equivalence testing approach using Mplus (see 
+		Mplus code). 
+		
+		It then creates a programme that can be used to run
+		I-MAIHDA models over the datasets, including the sensitivity analyses 
+		described in the manuscript. Model results are stored to be used in 
+		subsequent scripts, which will extract, tabulate, and visualise 
+		model-wide results including VPC and PCV estimates and main/additive 
+		effects (part 4a), and stratum-specific predictions (part 4b for tables,
+		part 4c for graphs).
+	
+		Portions of this code were adapted from: 
+		Evans, C.R., G. Leckie, S.V. Subramanian, A. Bell, & J. Merlo. (2024.).
+		A Tutorial for Conducting Intersectional Multilevel Analysis of Individual 
+		Heterogeneity and Discriminatory Accuracy (MAIHDA). SSM - Population Health.	 
+		https://doi.org/10.1016/j.ssmph.2024.101664
+
+*/
 
 **# Setup
 

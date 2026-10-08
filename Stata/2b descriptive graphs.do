@@ -1,4 +1,17 @@
-kaboom // added to prevent running the whole script when using the run command shortcut
+/*
+
+Intersectional inequalities in youth mental health measurement and outcomes: 
+population-representative evidence from the UK Millennium Cohort Study
+
+Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
+
+	Part 2b. Descriptive graphs
+	
+		This code produces descriptive visualisations across social identities 
+		and positions under study, both before and after recoding for subsequent 
+		analyses.
+		
+*/
 
 **# Setup
 

@@ -1,4 +1,17 @@
-kaboom // added to prevent running the whole script when using the run command shortcut
+/*
+
+Intersectional inequalities in youth mental health measurement and outcomes: 
+population-representative evidence from the UK Millennium Cohort Study
+
+Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
+
+	Part 1. Data management
+	
+		This code draws from the Millennium Cohort Study data, which can be 
+		obtained from the UK Data Service (http://doi.org/10.5255/UKDA-Series-2000031) 
+		to create the dataset used in subsequent analyses.
+	
+*/
 
 **# Setup
 

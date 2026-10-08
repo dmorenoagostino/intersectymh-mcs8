@@ -1,4 +1,20 @@
-kaboom // added to prevent running the whole script when using the run command shortcut
+/*
+
+Intersectional inequalities in youth mental health measurement and outcomes: 
+population-representative evidence from the UK Millennium Cohort Study
+
+Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
+
+	Part 2a. Descriptive tables, and intersectional strata and Mplus datasets creation
+	
+		This code produces a table with descriptive statistics across social 
+		identities and positions under study, both before and after recoding for
+		subsequent analyses.
+		
+		It also creates the multiple-way intersectional strata and Mplus datasets
+		that will be used for measurement invariance/equivalence testing.
+	
+*/
 
 **# Setup
 
