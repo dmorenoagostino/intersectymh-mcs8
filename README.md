@@ -200,6 +200,10 @@ Evaluates the robustness of findings to potential survey mode differences and se
 ```text
 intersectymh-mcs8/
 │
+├── README.md
+│
+├── LICENSE
+│
 ├── Stata/
 │   ├── 1 data management
 │   ├── 2a descriptives strata and Mplus datasets
@@ -210,12 +214,10 @@ intersectymh-mcs8/
 │   ├── 4c I-MAIHDA stratum-specific graphs
 │   └── 5 I-MAIHDA QBA mode effects
 │
-├── Mplus/
-│   ├── 1 Configural
-│   ├── 2 Alignment
-│   └── 3 MG-CFA
-│
-└── README.md
+└── Mplus/
+    ├── 1 Configural
+    ├── 2 Alignment
+    └── 3 MG-CFA
 ```
 
 ## Reproducibility notes
