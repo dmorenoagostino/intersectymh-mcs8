@@ -29,11 +29,11 @@ Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
 
 **# Setup
 
-	global mplus "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Mplus" // folder with Mplus results
+	global mplus "specify_working_directory\Analyses\Mplus" // folder with Mplus results
 	
-	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder including datasets for analyses
+	global datasets "specify_working_directory\Analyses\Datasets" // folder including datasets for analyses
 	
-	global estimates "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Estimates" // folder where results from models are saved
+	global estimates "specify_working_directory\Analyses\Estimates" // folder where results from models are saved
 	
 	* Create subfolders for sensitivity checks
 		

@@ -18,11 +18,11 @@ Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
 
 **# Setup
 
-	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder including working datasets
+	global datasets "specify_working_directory\Analyses\Datasets" // folder including working datasets
 	
-	global excelfile "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses" // folder where Excel file with results is / will be located
+	global excelfile "specify_working_directory\Analyses" // folder where Excel file with results is / will be located
 	
-	global mplus "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Mplus" // folder with files for Mplus
+	global mplus "specify_working_directory\Analyses\Mplus" // folder with files for Mplus
 
 	
 **# eTable 8.1: Descriptive statistics by full single axis variables

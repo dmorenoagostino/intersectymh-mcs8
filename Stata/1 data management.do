@@ -15,17 +15,17 @@ Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
 
 **# Setup
 
-	global mcs1 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\4683 Millennium Cohort Study Age 9 months, Sweep 1, 2001\UKDA-4683-stata\stata\stata13" // sweep 1
-	global mcs2 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\5350 Millennium Cohort Study Age 3, Sweep 2, 2004\UKDA-5350-stata\stata\stata13" // sweep 2
-	global mcs3 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\5795 Millennium Cohort Study Age 5, Sweep 3, 2006\UKDA-5795-stata\stata\stata13" // sweep 3
-	global mcs4 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\6411 Millennium Cohort Study Age 7, Sweep 4, 2008\UKDA-6411-stata\stata\stata13" // sweep 4
-	global mcs5 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\7464 Millennium Cohort Study Age 11, Sweep 5, 2012\UKDA-7464-stata\stata\stata13" // sweep 5
-	global mcs6 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\8156 Millennium Cohort Study Age 14, Sweep 6, 2015\UKDA-8156-stata\stata\stata13" // sweep 6
-	global mcs7 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\8682 Millennium Cohort Study Age 17, Sweep 7, 2018\UKDA-8682-stata\stata\stata13" // sweep 7
-	global mcs8 "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\9509 Millennium Cohort Study Sweep 8, Age 23, 2023-2025\UKDA-9509-stata 202606\stata\stata13" // sweep 8
-	global mcslong "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\MCS new\8172 Millennium Cohort Study Sweeps 1-8, 2001-2025 Longitudinal Files\UKDA-8172-stata 202606\stata\stata13" // longitudinal file
+	global mcs1 "specify_working_directory\Original MCS datasets\4683 Millennium Cohort Study Age 9 months, Sweep 1, 2001\UKDA-4683-stata\stata\stata13" // sweep 1
+	global mcs2 "specify_working_directory\Original MCS datasets\5350 Millennium Cohort Study Age 3, Sweep 2, 2004\UKDA-5350-stata\stata\stata13" // sweep 2
+	global mcs3 "specify_working_directory\Original MCS datasets\5795 Millennium Cohort Study Age 5, Sweep 3, 2006\UKDA-5795-stata\stata\stata13" // sweep 3
+	global mcs4 "specify_working_directory\Original MCS datasets\6411 Millennium Cohort Study Age 7, Sweep 4, 2008\UKDA-6411-stata\stata\stata13" // sweep 4
+	global mcs5 "specify_working_directory\Original MCS datasets\7464 Millennium Cohort Study Age 11, Sweep 5, 2012\UKDA-7464-stata\stata\stata13" // sweep 5
+	global mcs6 "specify_working_directory\Original MCS datasets\8156 Millennium Cohort Study Age 14, Sweep 6, 2015\UKDA-8156-stata\stata\stata13" // sweep 6
+	global mcs7 "specify_working_directory\Original MCS datasets\8682 Millennium Cohort Study Age 17, Sweep 7, 2018\UKDA-8682-stata\stata\stata13" // sweep 7
+	global mcs8 "specify_working_directory\Original MCS datasets\9509 Millennium Cohort Study Sweep 8, Age 23, 2023-2025\UKDA-9509-stata 202606\stata\stata13" // sweep 8
+	global mcslong "specify_working_directory\Original MCS datasets\8172 Millennium Cohort Study Sweeps 1-8, 2001-2025 Longitudinal Files\UKDA-8172-stata 202606\stata\stata13" // longitudinal file
 	
-	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder to save working datasets
+	global datasets "specify_working_directory\Analyses\Datasets" // folder to save working datasets
 		
 **# Data from previous sweeps
 
