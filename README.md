@@ -38,7 +38,7 @@ The repository contains both Stata (`.do`) and Mplus (`.inp`) scripts.
 
 # Analytical workflow
 
-Scripts should be run sequentially in the order described below.
+Scripts should be run sequentially in the order described below. Directories should be specified as appropriate to identify where original datasets are and where outputs are to be stored.
 
 ## 1. Data management
 
