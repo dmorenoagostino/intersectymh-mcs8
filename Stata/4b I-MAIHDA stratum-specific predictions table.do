@@ -24,7 +24,7 @@ Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
 
 **# Setup
 
-	global estimates "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Estimates" // folder where results from models are saved
+	global estimates "specify_working_directory\Analyses\Estimates" // folder where results from models are saved
 
 	tempfile maihda_predictions
 

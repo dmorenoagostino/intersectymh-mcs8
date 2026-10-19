@@ -23,11 +23,11 @@ Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
 
 **# Setup
 
-	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder including datasets for analyses
+	global datasets "specify_working_directory\Analyses\Datasets" // folder including datasets for analyses
 	
-	global mode "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Estimates/mode" // folder where results from models are saved
+	global mode "specify_working_directory\Analyses\Estimates/mode" // folder where results from models are saved
 	
-	global excelfile "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses" // folder where Excel file with results is located
+	global excelfile "specify_working_directory\Analyses" // folder where Excel file with results is located
 
 **# Data management for mode effects in continuous outcomes
 

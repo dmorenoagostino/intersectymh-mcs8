@@ -15,9 +15,9 @@ Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
 
 **# Setup
 
-	global datasets "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Datasets" // folder including working datasets
+	global datasets "specify_working_directory\Analyses\Datasets" // folder including working datasets
 	
-	global descriptivegraphs "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Descriptives" // folder to save descriptive graphs
+	global descriptivegraphs "specify_working_directory\Analyses\Descriptives" // folder to save descriptive graphs
 	
 **# Preparation of dataset for visualisation
 

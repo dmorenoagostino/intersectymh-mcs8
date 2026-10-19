@@ -23,9 +23,9 @@ Moreno-Agostino, D. et al., 2026 (add manuscript doi when available)
 
 **# Setup
 
-	global excelfile "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses" // folder where Excel file with results is located
+	global excelfile "specify_working_directory\Analyses" // folder where Excel file with results is located
 	
-	global estimates "C:\Users\qtnzdmo\OneDrive - University College London\# CLS\# Projects\Intersectional measurement and analysis\WT EC awards\#Studies\Study 1 - A proof of concept\Analyses\Estimates" // folder where results from models are saved
+	global estimates "specify_working_directory\Analyses\Estimates" // folder where results from models are saved
 	
 	* Create subfolders for coefficient plots
 		
